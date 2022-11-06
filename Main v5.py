@@ -2,20 +2,27 @@ import cv2
 import numpy as np
 import torch
 
-model = torch.hub.load("YOLOv5", 'custom', path="YOLOv5/yolov5s.pt", source='local')
+#model = torch.hub.load("YOLOv5", 'custom', path="YOLOv5/yolov5s.pt", source='local')
 
 capture = cv2.VideoCapture(0)
 while capture.isOpened():
     ret, frame = capture.read()
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
+    _,_,r = cv2.split(frame) # taking red channel from BGR image
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) # BGR to HSV
+    _,s,v = cv2.split(hsv) # taking saturation and value(lightness) channels from HSV image
+    sobel_x = cv2.Sobel(v, cv2.CV_64F, 1, 0, 3) # sobel edge detection on x-axis using value channel
+    sobel_y = cv2.Sobel(v, cv2.CV_64F, 0, 1, 3) # sobel edge detection on y-axis using value channel
+    _, thresh_s = cv2.threshold(s, 80, 255, cv2.THRESH_BINARY) # binary thresholding on saturation channel
+    _, thresh_r = cv2.threshold(r, 125, 255, cv2.THRESH_BINARY) # binary thresholding on red channel
     #--- YOLOv5 ---
-    results = model(frame)
+    #results = model(frame)
     #--- YOLOv5 ---
-    cv2.imshow('YOLOv5', np.squeeze(results.render()))
-    cv2.imshow('Thresh', thresh)
+    #cv2.imshow('YOLOv5', np.squeeze(results.render()))
+    cv2.imshow('Thresh S', thresh_s)
+    cv2.imshow('Thresh R', thresh_r)
+    cv2.imshow('Sobel Y', sobel_y)
+    cv2.imshow('Sobel X', sobel_x)
     
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break
