@@ -15,6 +15,8 @@ while capture.isOpened():
     sobel_y = cv2.Sobel(v, cv2.CV_64F, 0, 1, 3) # sobel edge detection on y-axis using value channel
     _, thresh_s = cv2.threshold(s, 80, 255, cv2.THRESH_BINARY) # binary thresholding on saturation channel
     _, thresh_r = cv2.threshold(r, 125, 255, cv2.THRESH_BINARY) # binary thresholding on red channel
+    #adaptive_thresh = cv2.adaptiveThreshold(s, 225, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 12)
+    canny = cv2.Canny(frame, 125, 175) #edge cascade
     #--- YOLOv5 ---
     #results = model(frame)
     #--- YOLOv5 ---
@@ -23,7 +25,9 @@ while capture.isOpened():
     cv2.imshow('Thresh R', thresh_r)
     cv2.imshow('Sobel Y', sobel_y)
     cv2.imshow('Sobel X', sobel_x)
-    
+    #cv2.imshow('Adapthresh', adaptive_thresh)
+    cv2.imshow('canny', canny)
+
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break
 
