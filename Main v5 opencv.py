@@ -24,6 +24,8 @@ capture = cv2.VideoCapture('Test videos/LA Walk Park.mp4')
 while capture.isOpened():
     ret, frame = capture.read()
 
+    cv2.imshow('Frame', frame)
+
     frame_blur = cv2.medianBlur(frame,5)
     frame_blur = cv2.GaussianBlur(frame_blur, (5,5), cv2.BORDER_DEFAULT)
     hsv = cv2.cvtColor(frame_blur, cv2.COLOR_BGR2HSV) # BGR to HSV
@@ -51,7 +53,7 @@ while capture.isOpened():
         approx = cv2.approxPolyDP(c_max, 0.005 * peri, True)
         cv2.drawContours(frame, [approx], -1, (0, 0, 255), -1)
 
-    cv2.imshow('Frame', frame)
+    cv2.imshow('Frame 2', frame)
     #cv2.imshow('Thresh R', thresh_r)
     #cv2.imshow('canny', canny)
 

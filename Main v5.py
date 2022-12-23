@@ -15,7 +15,8 @@ while capture.isOpened():
     results = model(frame)
     results_pd = results.pandas().xyxy[0]
     try: #error handling in case number of records is zero
-        print(results_pd['name'][0])
+        #print(results_pd['name'][0])
+        print(results_pd)
     except:
         pass
     #--- YOLOv5 ---
