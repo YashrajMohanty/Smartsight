@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import torch
-import os
 
 #os.system('python C:/Users/yashr/Desktop/GIT/Smartsight/YOLOv5/detect.py --weights C:/Users/yashr/Desktop/GIT/Smartsight/YOLOv5/yolov5s.pt --source C:/Users/yashr/Desktop/GIT/Smartsight/"Test videos"/"LA Walk "Outdoor.mp4')
 
