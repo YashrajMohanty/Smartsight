@@ -31,11 +31,11 @@ def display_view_angle(intersection_point):
     x, y = intersection_point
 
     if x <= (img_width * 0.3):
-        x_direction = 'Right >'
+        x_direction = '> Right'
     elif x >= (img_width * 0.7):
-        x_direction = 'Left <'
+        x_direction = '< Left'
     else:
-        x_direction = 'Centre ^'
+        x_direction = '^ Centre'
 
     if y <= (img_height * 0.3):
         y_direction = 'Up'
@@ -129,10 +129,9 @@ while capture.isOpened():
     #  Standard Hough Line Transform
     lines = cv2.HoughLines(dst, 1, np.pi/180, 150, None, 0, 0)
     perspective_lines = []
-    barrier_lines = []
 
     if lines is not None:
-        for i in range(0, min(7, len(lines))):
+        for i in range(0, min(2, len(lines))):
             rho = lines[i][0][0]
             theta = lines[i][0][1]
             a = math.cos(theta)
@@ -144,17 +143,11 @@ while capture.isOpened():
             line_angle = find_line_angle(pt1, pt2)
             
             # filter lines
-            if (max(pt1[1],pt2[1]) > (img_height * 0.6)) and (abs(line_angle) < 40) and (len(perspective_lines) <= 2):
-                perspective_lines.append([pt1, pt2])
-            if (line_angle > 80):
+            if (max(pt1[1],pt2[1]) > (img_height * 0.6)) and (abs(line_angle) < 60):
                 print(line_angle)
-                barrier_lines.append([pt1, pt2])
-            
-    if barrier_lines != []:
-        for i in range(0, len(barrier_lines)):
-            cv2.line(frame, pt1, pt2, (200,200,0), 2, cv2.LINE_AA) # Draw the lines
+                perspective_lines.append([pt1, pt2])
 
-    
+ 
     if perspective_lines is not None:
         for i in range(len(perspective_lines)):
             cv2.line(frame, pt1, pt2, (0,0,255), 1, cv2.LINE_AA) # Draw the lines
