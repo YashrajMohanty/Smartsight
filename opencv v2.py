@@ -10,8 +10,11 @@ def find_line_angle(pt1, pt2):
     x1, y1 = pt1
     x2, y2 = pt2
     x = abs(x1 - x2)
-    y = abs(y1 - y2)
-    angle = math.degrees(math.atan(x/y))
+    y = y1 - y2
+    if x == 0:
+        x = 0.1
+    angle = math.degrees(math.atan(y/x))
+    angle = round(angle, 3)
     return angle
 
 def display_view_angle(intersection_point):
@@ -32,7 +35,7 @@ def display_view_angle(intersection_point):
     elif x >= (img_width * 0.7):
         x_direction = 'Left <'
     else:
-        x_direction = 'Centre'
+        x_direction = 'Centre ^'
 
     if y <= (img_height * 0.3):
         y_direction = 'Up'
@@ -46,7 +49,7 @@ def display_view_angle(intersection_point):
     return
 
 class intersection:
-    prev_intersection = (None, None)
+    prev_intersection = None
     validation_weight = 5
 
     def find_intersection(pt1, pt2, pt3, pt4):
@@ -76,7 +79,6 @@ class intersection:
                 y = img_height
 
             #print(x,y)
-            cv2.circle(frame, (x,y), 4, (255, 0, 0), -1)
         except ZeroDivisionError:
             return
         return (x, y)
@@ -105,12 +107,10 @@ class intersection:
         # if weight < 0, reset weight and use the previous point as current point
         if intersection.validation_weight <= 0:
             intersection.validation_weight = 5
-            print('Validated')
             return intersection.prev_intersection
         
         # if everything is good, return the original point
         intersection.prev_intersection = intersect_point
-        print('Normal')
         return intersect_point    
             
 capture = cv2.VideoCapture('Test videos/LA Walk Park.mp4')
@@ -128,10 +128,11 @@ while capture.isOpened():
     dst = cv2.Canny(median, 50, 200, None, 3)
     #  Standard Hough Line Transform
     lines = cv2.HoughLines(dst, 1, np.pi/180, 150, None, 0, 0)
-    lines_filtered = []
+    perspective_lines = []
+    barrier_lines = []
 
     if lines is not None:
-        for i in range(0, min(2,len(lines))):
+        for i in range(0, min(7, len(lines))):
             rho = lines[i][0][0]
             theta = lines[i][0][1]
             a = math.cos(theta)
@@ -140,16 +141,27 @@ while capture.isOpened():
             y0 = b * rho
             pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
             pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
-            if (max(pt1[1],pt2[1]) > (img_height * 0.6)) and (find_line_angle(pt1, pt2) > 40): # Filter line height and angle
-                lines_filtered.append([pt1, pt2])
+            line_angle = find_line_angle(pt1, pt2)
+            
+            # filter lines
+            if (max(pt1[1],pt2[1]) > (img_height * 0.6)) and (abs(line_angle) < 40) and (len(perspective_lines) <= 2):
+                perspective_lines.append([pt1, pt2])
+            if (line_angle > 80):
+                print(line_angle)
+                barrier_lines.append([pt1, pt2])
+            
+    if barrier_lines != []:
+        for i in range(0, len(barrier_lines)):
+            cv2.line(frame, pt1, pt2, (200,200,0), 2, cv2.LINE_AA) # Draw the lines
+
     
-    if lines_filtered is not None:
-        for i in range(0, len(lines_filtered)):
+    if perspective_lines is not None:
+        for i in range(len(perspective_lines)):
             cv2.line(frame, pt1, pt2, (0,0,255), 1, cv2.LINE_AA) # Draw the lines
             try:
-                intersect_point = intersection.find_intersection(lines_filtered[i][0], lines_filtered[i][1], lines_filtered[i-1][0], lines_filtered[i-1][1])
+                intersect_point = intersection.find_intersection(perspective_lines[i][0], perspective_lines[i][1], perspective_lines[i-1][0], perspective_lines[i-1][1])
                 validated_point = intersection.validate_point(intersect_point, 50)
-                cv2.circle(frame, validated_point, 4, (255, 0, 0), -1)
+                cv2.circle(frame, validated_point, 4, (0, 255, 0), -1)
                 display_view_angle(validated_point)
             except IndexError:
                 print('Error')
