@@ -124,7 +124,7 @@ while capture.isOpened():
     cv2.imshow('Frame', frame)
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    median = cv2.medianBlur(gray,3)
+    median = cv2.medianBlur(gray, 7)
     dst = cv2.Canny(median, 50, 200, None, 3)
     #  Standard Hough Line Transform
     lines = cv2.HoughLines(dst, 1, np.pi/180, 150, None, 0, 0)
@@ -141,9 +141,9 @@ while capture.isOpened():
             pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
             pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
             line_angle = find_line_angle(pt1, pt2)
-            
+
             # filter lines
-            if (max(pt1[1],pt2[1]) > (img_height * 0.6)) and (abs(line_angle) < 60):
+            if (abs(line_angle) < 60):
                 print(line_angle)
                 perspective_lines.append([pt1, pt2])
 
