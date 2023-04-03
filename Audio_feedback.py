@@ -7,7 +7,6 @@ com.CoInitialize()
 speak = wincl.Dispatch('SAPI.SpVoice')
 speak_id = com.CoMarshalInterThreadInterfaceInStream(com.IID_IDispatch, speak)
 
-
 class alert_system:
 
     alerts = []

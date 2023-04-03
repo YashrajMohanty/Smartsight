@@ -24,7 +24,7 @@ if __name__ == "__main__":
         bb_center = obj.obj_detect.boundingboxcenter(results_plot)
 
         disp_map = sv.stereo_cam.run_stereo(frameL, frameR)
-        sv.stereo_cam.place_squares(disp_map)
+        sv.stereo_cam.place_markers(disp_map)
 
         distances = sv.stereo_cam.find_distance(results_plot, bb_center, True)
         cls = obj.obj_detect.cls

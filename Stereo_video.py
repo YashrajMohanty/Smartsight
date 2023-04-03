@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 from glob import glob
-import math
 
 img_shape = [640, 480]
 disp = None
@@ -31,11 +30,11 @@ class calibrate_cam:
 
         for filename in list(glob(folder+'/*.jpg')):
             img = cv2.imread(filename)
-            #img = cv2.resize(img, (0, 0), fx = 0.625, fy = 0.625)
 
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
             ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
+
             # If found, add object points, image points
             if ret == True:
                 objpoints.append(objp)
@@ -61,11 +60,8 @@ class stereo_cam:
     Left_Stereo_Map = None
     Right_Stereo_Map = None
     stereo = None
-    stereoR = None
     wls_filter = None
-    min_disp = None
     num_disp = None
-    Q = None
 
     def find_distance(frame, bb_center, display_text=True, fontscale=1):
         if bb_center == None:
@@ -73,16 +69,15 @@ class stereo_cam:
         if len(bb_center) == 0:
             return
         distances = []
+        disp = stereo_cam.disp
         for i in bb_center:
             x, y = i
-            disp = stereo_cam.disp
             average=0
             for u in range (-1,2):
                 for v in range (-1,2):
                     average += disp[y+u,x+v]
             average=average/9
             Distance= (28.6275*(average**2)) - (39.1097*average) + 14.9541
-            #Distance= np.around(Distance*0.01,decimals=2)
             Distance = 2.4*Distance
             Distance = round(Distance, 2)
             distances.append(Distance)
@@ -114,41 +109,31 @@ class stereo_cam:
                                                                 criteria = criteria_stereo,
                                                                 flags = cv2.CALIB_FIX_INTRINSIC)
 
-        RL, RR, PL, PR, Q, _, _= cv2.stereoRectify(MLS, dLS, MRS, dRS,
+        RL, RR, PL, PR, _, _, _= cv2.stereoRectify(MLS, dLS, MRS, dRS,
                                                         img_shape, R, T,
-                                                        1,(0,0))  # last paramater is alpha, if 0= cropped, if 1= not cropped
+                                                        1,(0,0))
 
         Left_Stereo_Map= cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
-                                                    img_shape, cv2.CV_16SC2)   # cv2.CV_16SC2 this format enables us the program to work faster
+                                                    img_shape, cv2.CV_16SC2)  # cv2.CV_16SC2 allows program to run faster
         Right_Stereo_Map= cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
                                                     img_shape, cv2.CV_16SC2)
 
         # Create StereoBM and prepare all parameters  
-        min_disp = 2
-        num_disp = 32#113-min_disp
+        num_disp = 32 #113-min_disp
         stereo = cv2.StereoBM_create(numDisparities=num_disp, blockSize=5)
 
-        # Used for the filtered image
-        stereoR=cv2.ximgproc.createRightMatcher(stereo) # Create another stereo for right camera
-
-        # WLS FILTER Parameters
-        lmbda = 80000
-        sigma = 1.8
-        
+        # WLS FILTER Parameters 
         wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
-        wls_filter.setLambda(lmbda)
-        wls_filter.setSigmaColor(sigma)
+        wls_filter.setLambda(80000) #lambda
+        wls_filter.setSigmaColor(1.8) #sigma
 
         stereo_cam.Left_Stereo_Map = Left_Stereo_Map
         stereo_cam.Right_Stereo_Map = Right_Stereo_Map
         stereo_cam.stereo = stereo
-        stereo_cam.stereoR = stereoR
         stereo_cam.wls_filter = wls_filter
-        stereo_cam.min_disp = min_disp
         stereo_cam.num_disp = num_disp
-        stereo_cam.Q = Q
 
-    def place_squares(img):
+    def place_markers(img):
 
         x_center = 320
         y_center = 240
@@ -186,12 +171,6 @@ class stereo_cam:
         disp = disp / num_disp
         disp = wls_filter.filter(disp,grayL,None,disp)
 
-        #baseline = 0.16 # distance between cameras in cm
-        #foc_len = 0.03 # focal length of camera in cm
-        #depth = (baseline * foc_len) / disp
-        #depth_thresh = 5
-        #mask = cv2.inRange(depth, 4, depth_thresh)
-
         stereo_cam.disp = disp
         return disp
 
@@ -212,9 +191,8 @@ if __name__ == "__main__":
             print('Stream ended')
             break
 
-        #disp_map = stereo_cam.run_stereo(frameL, frameR)
         disp_map = stereo_cam.run_stereo(frameL, frameR)
-        stereo_cam.place_squares(disp_map)
+        stereo_cam.place_markers(disp_map)
         cv2.imshow("Stereo", disp_map)
         
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
