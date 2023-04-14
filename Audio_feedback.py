@@ -1,22 +1,17 @@
-import win32com.client as wincl
 from time import sleep
 from threading import Thread
-import pythoncom as com
 
-com.CoInitialize()
-speak = wincl.Dispatch('SAPI.SpVoice')
-speak_id = com.CoMarshalInterThreadInterfaceInStream(com.IID_IDispatch, speak)
 
 class alert_system:
 
     alerts = []
-    def check(cls, bb_center, distances):
+    def check(cls, bb_center, distances, obs_flag=False):
 
         if len(cls) == 0:
             return
 
-        left_partition = 210 # 320-110
-        right_partition = 430 # 320+110
+        left_partition = 270 # 320-50
+        right_partition = 470 # 320+50
 
         obj_set = ['vehicle', 'vehicle', 'vehicle', 'animal', 'animal', 'vehicle', 'person', 'train', 'vehicle'] #['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck']
         cls = cls.astype(int)
@@ -27,7 +22,7 @@ class alert_system:
         left = []
         right = []
         center = []
-        sections = (left, right, center) 
+        sections = (center, left, right) 
 
         for i in range(len(bb_center)):
             if distances[i] > 8: # only objects closer than this distance(meters) will be alerted of
@@ -42,9 +37,9 @@ class alert_system:
         alerts_left = []
         alerts_right = []
         alerts_center = []
-        alerts = [alerts_left, alerts_right, alerts_center]
+        alerts = [alerts_center, alerts_left, alerts_right]
 
-        directions = ['left','right','front']
+        directions = ['front','left','right']
 
         for i in range(3):
             animal_count = 0
@@ -70,6 +65,9 @@ class alert_system:
                 if j == 'vehicle':
                      vehicle_count += 1
 
+            if obs_flag:
+                alert = "Obstruction"
+                alerts[i].append(alert)
             if animal_count > 1:
                 alert = "Animals to the " + directions[i]
                 alerts[i].append(alert)
@@ -86,10 +84,12 @@ class alert_system:
         alert_system.alerts = alerts
         return
 
-    def play(speak_id):
+    def play():
+        from win32com.client import Dispatch
+        from pythoncom import CoInitialize
 
-        com.CoInitialize()
-        speak = wincl.Dispatch(com.CoGetInterfaceAndReleaseStream(speak_id, com.IID_IDispatch))
+        CoInitialize()
+        speak = Dispatch('SAPI.SpVoice')
 
         while(True):
             alerts = alert_system.alerts
@@ -99,7 +99,6 @@ class alert_system:
                 print(i)
                 for alert in i:
                     speak.Speak(alert)
-                    pass
             sleep(1)
 
     def start_play_thread():
@@ -107,7 +106,7 @@ class alert_system:
         audio_thread.start()
         return
 
-audio_thread = Thread(target=alert_system.play, args=() , name='AudioFeedbackThread', kwargs={'speak_id':speak_id})
+audio_thread = Thread(target=alert_system.play, args=() , name='AudioFeedbackThread')
 audio_thread.daemon = True
 
 if __name__ == "__main__":

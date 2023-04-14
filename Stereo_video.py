@@ -2,7 +2,8 @@ import numpy as np
 import cv2
 from glob import glob
 
-img_shape = [640, 480]
+img_shape = [640, 480] # original img size
+img_shape_half = [320, 240]
 disp = None
 
 class calibrate_cam:
@@ -18,7 +19,7 @@ class calibrate_cam:
 
     def calibrate_camera(self):
         folder = self.folder
-            # termination criteria
+        # termination criteria
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         
         # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -29,8 +30,9 @@ class calibrate_cam:
         imgpoints = [] # 2d points in image plane.
 
         for filename in list(glob(folder+'/*.jpg')):
-            img = cv2.imread(filename)
 
+            img = cv2.imread(filename)
+            img = cv2.resize(img, img_shape_half) # half the img size
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
             ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
@@ -41,7 +43,7 @@ class calibrate_cam:
                 corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
                 imgpoints.append(corners2)
 
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_shape, None, None)
+        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_shape_half, None, None)
         #new_mtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, img.shape[:2], 1, img.shape[:2])
         
         print("Camera matrix:\n", mtx)
@@ -62,6 +64,7 @@ class stereo_cam:
     stereo = None
     wls_filter = None
     num_disp = None
+    obstruction_flag = False
 
     def find_distance(frame, bb_center, display_text=True, fontscale=1):
         if bb_center == None:
@@ -72,19 +75,17 @@ class stereo_cam:
         disp = stereo_cam.disp
         for i in bb_center:
             x, y = i
-            average=0
-            for u in range (-1,2):
-                for v in range (-1,2):
-                    average += disp[y+u,x+v]
-            average=average/9
-            Distance= (28.6275*(average**2)) - (39.1097*average) + 14.9541
-            Distance = 2.4*Distance
-            Distance = round(Distance, 2)
-            distances.append(Distance)
+            x, y = int(x), int(y)
+            avg = disp[y,x]
+            if avg == 0:
+                avg = 0.01
+            distance = (5.3043/(avg**0.4042)) - 5.2340
+            distance = round(distance, 2)
+            distances.append(distance)
 
             if display_text == True:
-                if Distance < 10:
-                    cv2.putText(frame, str(Distance)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,0,255), 1, cv2.LINE_AA)
+                if distance < 8 and distance > 3.5:
+                    cv2.putText(frame, str(distance)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,255,0), 1, cv2.LINE_AA)
                 else:
                     cv2.putText(frame, 'INF', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,0,255), 1, cv2.LINE_AA)
         return distances
@@ -105,21 +106,21 @@ class stereo_cam:
                                                                 camL.dist,
                                                                 camR.mtx,
                                                                 camR.dist,
-                                                                img_shape,
+                                                                img_shape_half,
                                                                 criteria = criteria_stereo,
                                                                 flags = cv2.CALIB_FIX_INTRINSIC)
 
         RL, RR, PL, PR, _, _, _= cv2.stereoRectify(MLS, dLS, MRS, dRS,
-                                                        img_shape, R, T,
+                                                        img_shape_half, R, T,
                                                         1,(0,0))
 
         Left_Stereo_Map= cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
-                                                    img_shape, cv2.CV_16SC2)  # cv2.CV_16SC2 allows program to run faster
+                                                    img_shape_half, cv2.CV_16SC2)  # cv2.CV_16SC2 allows program to run faster
         Right_Stereo_Map= cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
-                                                    img_shape, cv2.CV_16SC2)
+                                                    img_shape_half, cv2.CV_16SC2)
 
         # Create StereoBM and prepare all parameters  
-        num_disp = 32 #113-min_disp
+        num_disp = 64
         stereo = cv2.StereoBM_create(numDisparities=num_disp, blockSize=5)
 
         # WLS FILTER Parameters 
@@ -135,22 +136,29 @@ class stereo_cam:
 
     def place_markers(img):
 
-        x_center = 320
-        y_center = 240
-        square_size = 50
+        x_center = (img_shape[0] / 2) + 50 # shifting markers right by 50 px
+        y_center = img_shape[1] / 2
+        grid_size = 180
+        grid = [int(-grid_size/2), 0, int(grid_size/2)]
 
-        c1 = (x_center-square_size,y_center-square_size)
-        c2 = (x_center,y_center-square_size)
-        c3 = (x_center+square_size,y_center-square_size)
-        c4 = (x_center-square_size,y_center)
-        c5 = (x_center,y_center)
-        c6 = (x_center+square_size,y_center)
-        c7 = (x_center-square_size,y_center+square_size)
-        c8 = (x_center,y_center+square_size)
-        c9 = (x_center+square_size,y_center+square_size)
+        marker_pos = []
+        
+        for i in grid:
+            for j in grid:
+                point = (x_center+i, y_center+j)
+                marker_pos.append(point)
 
-        square_pos = [c1,c2,c3,c4,c5,c6,c7,c8,c9]
-        stereo_cam.find_distance(img, square_pos, display_text=True, fontscale=0.5)
+        near_count = 0
+        dist = stereo_cam.find_distance(img, marker_pos, display_text=True, fontscale=0.5)
+
+        for i in dist:
+            if i < 3: # if distance returned by marker < 3
+                near_count += 1
+
+        if near_count > 3: # if more than 3 markers return low distance
+            stereo_cam.obstruction_flag = True
+        else:
+            stereo_cam.obstruction_flag = False
         return
 
     def run_stereo(frameL, frameR):
@@ -161,16 +169,20 @@ class stereo_cam:
         num_disp = stereo_cam.num_disp
         wls_filter = stereo_cam.wls_filter
 
-        Left_nice= cv2.remap(frameL,Left_Stereo_Map[0],Left_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters founds during the initialisation
-        Right_nice= cv2.remap(frameR,Right_Stereo_Map[0],Right_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
-    
-        grayR= cv2.cvtColor(Right_nice,cv2.COLOR_BGR2GRAY)
-        grayL= cv2.cvtColor(Left_nice,cv2.COLOR_BGR2GRAY)
+        frameL = cv2.resize(frameL, img_shape_half) # half img size
+        frameR = cv2.resize(frameR, img_shape_half)
+
+        Left_remap = cv2.remap(frameL,Left_Stereo_Map[0],Left_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters founds during the initialisation
+        Right_remap = cv2.remap(frameR,Right_Stereo_Map[0],Right_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
+
+        grayL= cv2.cvtColor(Left_remap,cv2.COLOR_BGR2GRAY)   
+        grayR= cv2.cvtColor(Right_remap,cv2.COLOR_BGR2GRAY)
  
         disp = stereo.compute(grayL,grayR).astype(np.float32) / 16.0
         disp = disp / num_disp
+        #disp = cv2.normalize(disp,(0,0),0,2,cv2.NORM_MINMAX)
         disp = wls_filter.filter(disp,grayL,None,disp)
-
+        disp = cv2.resize(disp, img_shape) # resize img to full size
         stereo_cam.disp = disp
         return disp
 

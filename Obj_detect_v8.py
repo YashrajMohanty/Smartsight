@@ -3,7 +3,7 @@ from ultralytics import YOLO
 
 print('Initializing model')
 #model = YOLO("ultralytics/yolov8n.pt") #default model
-model = YOLO("Custom model/best.pt") #custom model
+model = YOLO("Models/best.pt") #custom model
 print('Engaging...')
 
 

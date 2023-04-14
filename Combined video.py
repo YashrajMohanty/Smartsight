@@ -15,6 +15,7 @@ if __name__ == "__main__":
 
         _, frameL = captureL.read()
         _, frameR = captureR.read()
+        
 
         if (str(type(frameL))) == "<class 'NoneType'>":
             print('Stream ended')
@@ -28,9 +29,9 @@ if __name__ == "__main__":
 
         distances = sv.stereo_cam.find_distance(results_plot, bb_center, True)
         cls = obj.obj_detect.cls
+        obs_flag = sv.stereo_cam.obstruction_flag
 
-        af.alert_system.check(cls, bb_center, distances)
-
+        af.alert_system.check(cls, bb_center, distances, obs_flag)
         cv2.imshow("YOLOv8", results_plot)
         cv2.imshow("Stereo", disp_map)
         
