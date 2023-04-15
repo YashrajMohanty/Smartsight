@@ -2,8 +2,8 @@
 *.png
 .gitignore
 Test videos
-Main v5 opencv
-Main v5 Stereo
 Chessboard
 coco128
+__pycache__
+Models
 

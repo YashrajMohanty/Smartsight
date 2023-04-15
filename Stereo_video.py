@@ -4,7 +4,6 @@ from glob import glob
 
 img_shape = [640, 480] # original img size
 img_shape_half = [320, 240]
-disp = None
 
 class calibrate_cam:
 
