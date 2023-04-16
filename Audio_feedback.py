@@ -13,11 +13,26 @@ class alert_system:
         left_partition = 270 # 320-50
         right_partition = 470 # 320+50
 
-        obj_set = ['vehicle', 'vehicle', 'vehicle', 'animal', 'animal', 'vehicle', 'person', 'train', 'vehicle'] #['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck']
+        #default filtered classes: [0,1,2,3,5,7,13,15,16,17,18,19,57] nc: 13
+        #custom model classes: ['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck'] nc: 9
         cls = cls.astype(int)
         cls = list(cls)
         for i in range(len(cls)):
-            cls[i] = obj_set[cls[i]]
+            if cls[i] == 0:
+                cls[i] = 'person'
+                continue
+            for j in [1,2,3,5,7]:
+                if cls[i] == j:
+                    cls[i] = 'vehicle'
+                    continue
+            for j in [13,57]:
+                if cls[i] == j:
+                    cls[i] = 'bench'
+                    continue
+            for j in [15,16,17,18,19]:
+                if cls[i] == j:
+                    cls[i] = 'animal'
+                    continue
         
         left = []
         right = []
@@ -28,11 +43,11 @@ class alert_system:
             if distances[i] > 8: # only objects closer than this distance(meters) will be alerted of
                 continue
             if (bb_center[i][0] < left_partition):
-                left.append(cls[i])
+                left.append(str(cls[i]))
             if (bb_center[i][0] > right_partition):
-                right.append(cls[i])
+                right.append(str(cls[i]))
             else:
-                center.append(cls[i])
+                center.append(str(cls[i]))
 
         alerts_left = []
         alerts_right = []
@@ -45,7 +60,7 @@ class alert_system:
             animal_count = 0
             person_count = 0
             vehicle_count = 0
-            train_count = 0
+            bench_count = 0
             side = sections[i]
             
             if len(side) == 0:
@@ -55,15 +70,13 @@ class alert_system:
                 if len(j) == 0:
                     continue
                 if j == 'animal':
-                     animal_count += 1
+                    animal_count += 1
                 if j == 'person':
                     person_count += 1
-
-                if j == 'train':
-                    train_count += 1
-
+                if j == 'bench':
+                    bench_count += 1
                 if j == 'vehicle':
-                     vehicle_count += 1
+                    vehicle_count += 1
 
             if obs_flag:
                 alert = "Obstruction"
@@ -77,8 +90,8 @@ class alert_system:
             if vehicle_count > 0:
                 alert = "Vehicles to the " + directions[i]
                 alerts[i].append(alert)
-            if train_count > 0:
-                alert = "Trains to the " + directions[i]
+            if bench_count > 0:
+                alert = "Bench to the " + directions[i]
                 alerts[i].append(alert)
            
         alert_system.alerts = alerts

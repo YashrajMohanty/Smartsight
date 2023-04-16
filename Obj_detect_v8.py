@@ -1,9 +1,10 @@
 import cv2
 from ultralytics import YOLO
+import numpy as np
 
 print('Initializing model')
-#model = YOLO("ultralytics/yolov8n.pt") #default model
-model = YOLO("Models/best.pt") #custom model
+model = YOLO("ultralytics/yolov8n.pt") #default model
+#model = YOLO("Models/best.pt") #custom model
 print('Engaging...')
 
 
@@ -25,14 +26,35 @@ class obj_detect():
             cv2.circle(frame, (avg_x, avg_y), 2, (0, 255, 0), -1)
         return bb_center
 
-    def detect_objects(frame):
+    def filter_classes(result):
+        filter_class = [0,1,2,3,5,7,13,15,16,17,18,19,57] # classes to filter (according to COCO128)
+        result_boxes = result.boxes.xyxy.cpu().numpy()
+        result_cls = result.boxes.cls.cpu().numpy()     
+        boxes = []
+        cls = []
+        flag = False
+        for i in range(len(result_cls)):
+            for j in filter_class:
+                if result_cls[i] == j:
+                    flag = True
+                    continue
+            if flag:
+                cls.append(result_cls[i])
+                boxes.append(result_boxes[i])
+        cls = np.array(cls)
+        boxes = np.array(boxes)
+        return (boxes, cls)
+
+    def detect_objects(frame, filter_class=False):
         results = model.predict(source=frame, verbose=False)
         if len(results) > 0:
             results_plot = results[0].plot(show_conf=False, line_width=1)
-            for r in results:   
-                obj_detect.boxes = r.boxes.xyxy.cpu().numpy()
-                obj_detect.cls = r.boxes.cls.cpu().numpy()
-
+            for result in results:
+                if filter_class: # if using default model, filter classes
+                    obj_detect.boxes, obj_detect.cls = obj_detect.filter_classes(result)
+                else:
+                    obj_detect.boxes = result.boxes.xyxy.cpu().numpy()
+                    obj_detect.cls = result.boxes.cls.cpu().numpy()
         return results_plot
 
 
@@ -47,7 +69,7 @@ if __name__ == "__main__":
             print('Stream ended')
             break
 
-        results_plot = obj_detect.detect_objects(frame)
+        results_plot = obj_detect.detect_objects(frame, filter_class=True)
         bb_center = obj_detect.boundingboxcenter(results_plot)
         cv2.imshow("YOLOv8", results_plot)
         

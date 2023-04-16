@@ -21,7 +21,7 @@ if __name__ == "__main__":
             print('Stream ended')
             break
 
-        results_plot = obj.obj_detect.detect_objects(frameL)
+        results_plot = obj.obj_detect.detect_objects(frameL,filter_class=True)
         bb_center = obj.obj_detect.boundingboxcenter(results_plot)
 
         disp_map = sv.stereo_cam.run_stereo(frameL, frameR)
