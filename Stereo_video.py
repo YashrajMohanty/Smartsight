@@ -78,6 +78,7 @@ class stereo_cam:
             avg = disp[y,x]
             if avg == 0:
                 avg = 0.01
+            avg = abs(avg)
             distance = (5.3043/(avg**0.4042)) - 5.2340
             distance = round(distance, 2)
             distances.append(distance)
@@ -189,6 +190,7 @@ class stereo_cam:
 if __name__ == "__main__":
     
     stereo_cam.calibrate_stereo()
+
     print('Engaging test')
     captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
     captureR = cv2.VideoCapture('Chessboard/Stereo R anim.mp4')

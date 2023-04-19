@@ -112,6 +112,7 @@ class alert_system:
                 print(i)
                 for alert in i:
                     speak.Speak(alert)
+                    #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
             sleep(1)
 
     def start_play_thread():
