@@ -1,8 +1,6 @@
-*.mp4
 *.png
 .gitignore
 Test videos
-Chessboard
 coco128
 __pycache__
 Models
