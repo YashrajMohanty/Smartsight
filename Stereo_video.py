@@ -79,7 +79,12 @@ class stereo_cam:
             if avg == 0:
                 avg = 0.01
             avg = abs(avg)
-            distance = (5.3043/(avg**0.4042)) - 5.2340
+            if avg < 0.217:
+                distance = 10
+            elif avg > 0.72:
+                distance = 1
+            else:
+                distance = (5.3043/(avg**0.4042)) - 5.2340
             distance = round(distance, 2)
             distances.append(distance)
 
@@ -87,7 +92,7 @@ class stereo_cam:
                 if distance < 8 and distance > 3.5:
                     cv2.putText(frame, str(distance)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,255,0), 1, cv2.LINE_AA)
                 else:
-                    cv2.putText(frame, 'INF', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,0,255), 1, cv2.LINE_AA)
+                    cv2.putText(frame, str(distance)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,0,255), 1, cv2.LINE_AA)
         return distances
 
     def calibrate_stereo():
