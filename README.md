@@ -14,4 +14,4 @@ The program consists of 4 modules:
 Obj_detect_v8.py is used for object detection  
 Stereo_video.py is used for stereo vision based distance estimation  
 Audio_feedback.py is used for generating and playing audio alerts  
-Combined video.py acts as a central pipeline to integrate the aforementioned modules
+Combined_video.py acts as a central pipeline to integrate the aforementioned modules
