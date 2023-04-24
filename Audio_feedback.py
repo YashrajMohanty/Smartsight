@@ -5,6 +5,7 @@ from threading import Thread
 class alert_system:
 
     alerts = []
+    
     def check(cls, bb_center, distances, obs_flag=False):
 
         if len(cls) == 0:

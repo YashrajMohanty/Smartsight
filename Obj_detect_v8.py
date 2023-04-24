@@ -9,11 +9,13 @@ print('Engaging...')
 
 
 class obj_detect():
-    boxes = []
-    cls = []
 
-    def boundingboxcenter(frame):
-        boxes = obj_detect.boxes
+    def __init__(self):
+        self.boxes = []
+        self.cls = []
+
+    def boundingboxcenter(self,frame):
+        boxes = self.boxes
         if len(boxes) == 0:
             return
 
@@ -26,7 +28,7 @@ class obj_detect():
             cv2.circle(frame, (avg_x, avg_y), 2, (0, 255, 0), -1)
         return bb_center
 
-    def filter_classes(result):
+    def filter_classes(self, result):
         filter_class = [0,1,2,3,5,7,13,15,16,17,18,19,57] # classes to filter (according to COCO128)
         result_boxes = result.boxes.xyxy.cpu().numpy()
         result_cls = result.boxes.cls.cpu().numpy()     
@@ -45,22 +47,24 @@ class obj_detect():
         boxes = np.array(boxes)
         return (boxes, cls)
 
-    def detect_objects(frame, filter_class=False):
+    def detect_objects(self, frame, filter_class=False):
         results = model.predict(source=frame, verbose=False)
         if len(results) > 0:
             results_plot = results[0].plot(show_conf=False, line_width=1)
             for result in results:
                 if filter_class: # if using default model, filter classes
-                    obj_detect.boxes, obj_detect.cls = obj_detect.filter_classes(result)
+                    self.boxes, self.cls = self.filter_classes(result)
                 else:
-                    obj_detect.boxes = result.boxes.xyxy.cpu().numpy()
-                    obj_detect.cls = result.boxes.cls.cpu().numpy()
+                    self.boxes = result.boxes.xyxy.cpu().numpy()
+                    self.cls = result.boxes.cls.cpu().numpy()
         return results_plot
 
 
 if __name__ == "__main__":
 
+    obj_det = obj_detect()
     capture = cv2.VideoCapture('Test videos/LA Walk Park.mp4')
+    #capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
     print('Engaging test')
     while capture.isOpened():
         _, frame = capture.read()
@@ -68,9 +72,9 @@ if __name__ == "__main__":
         if (str(type(frame))) == "<class 'NoneType'>":
             print('Stream ended')
             break
-
-        results_plot = obj_detect.detect_objects(frame, filter_class=True)
-        bb_center = obj_detect.boundingboxcenter(results_plot)
+        
+        results_plot = obj_det.detect_objects(frame, filter_class=True)
+        bb_center = obj_det.boundingboxcenter(results_plot)
         cv2.imshow("YOLOv8", results_plot)
         
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit

@@ -7,17 +7,15 @@ img_shape_half = [320, 240]
 
 class calibrate_cam:
 
-    objpoints = None
-    imgpoints = None
-    mtx = None
-    dist = None
-
     def __init__(self, folder):
         self.folder = folder
+        self.objpoints = None
+        self.imgpoints = None
+        self.mtx = None
+        self.dist = None
 
 
     def calibrate_camera(self):
-        folder = self.folder
         # termination criteria
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         
@@ -28,7 +26,7 @@ class calibrate_cam:
         objpoints = [] # 3d point in real world space
         imgpoints = [] # 2d points in image plane.
 
-        for filename in list(glob(folder+'/*.jpg')):
+        for filename in list(glob(self.folder+'/*.jpg')):
 
             img = cv2.imread(filename)
             img = cv2.resize(img, img_shape_half) # half the img size
@@ -57,21 +55,23 @@ class calibrate_cam:
         self.dist = dist
 
 class stereo_cam:
-    disp = None
-    Left_Stereo_Map = None
-    Right_Stereo_Map = None
-    stereo = None
-    wls_filter = None
-    num_disp = None
-    obstruction_flag = False
 
-    def find_distance(frame, bb_center, display_text=True, fontscale=1):
+    def __init__(self):
+        self.disp = None
+        self.Left_Stereo_Map = None
+        self.Right_Stereo_Map = None
+        self.stereo = None
+        self.wls_filter = None
+        self.num_disp = None
+        self.obstruction_flag = False
+
+    def find_distance(self, frame, bb_center, display_text=True, fontscale=1):
         if bb_center == None:
             return
         if len(bb_center) == 0:
             return
         distances = []
-        disp = stereo_cam.disp
+        disp = self.disp
         for i in bb_center:
             x, y = i
             x, y = int(x), int(y)
@@ -95,7 +95,7 @@ class stereo_cam:
                     cv2.putText(frame, str(distance)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, fontscale, (0,0,255), 1, cv2.LINE_AA)
         return distances
 
-    def calibrate_stereo():
+    def calibrate_stereo(self):
 
         camL = calibrate_cam('Chessboard/L')
         camL.calibrate_camera()
@@ -133,15 +133,15 @@ class stereo_cam:
         wls_filter.setLambda(80000) #lambda
         wls_filter.setSigmaColor(1.8) #sigma
 
-        stereo_cam.Left_Stereo_Map = Left_Stereo_Map
-        stereo_cam.Right_Stereo_Map = Right_Stereo_Map
-        stereo_cam.stereo = stereo
-        stereo_cam.wls_filter = wls_filter
-        stereo_cam.num_disp = num_disp
+        self.Left_Stereo_Map = Left_Stereo_Map
+        self.Right_Stereo_Map = Right_Stereo_Map
+        self.stereo = stereo
+        self.wls_filter = wls_filter
+        self.num_disp = num_disp
 
-    def place_markers(img):
+    def place_markers(self, img):
 
-        x_center = (img_shape[0] / 2) + 50 # shifting markers right by 50 px
+        x_center = (img_shape[0] / 2)  # shifting markers right by 50 px
         y_center = img_shape[1] / 2
         grid_size = 180
         grid = [int(-grid_size/2), 0, int(grid_size/2)]
@@ -154,47 +154,56 @@ class stereo_cam:
                 marker_pos.append(point)
 
         near_count = 0
-        dist = stereo_cam.find_distance(img, marker_pos, display_text=True, fontscale=0.5)
+        dist = self.find_distance(img, marker_pos, display_text=True, fontscale=0.5)
 
         for i in dist:
             if i < 3: # if distance returned by marker < 3
                 near_count += 1
 
         if near_count > 3: # if more than 3 markers return low distance
-            stereo_cam.obstruction_flag = True
+            self.obstruction_flag = True
         else:
-            stereo_cam.obstruction_flag = False
+            self.obstruction_flag = False
         return
 
-    def run_stereo(frameL, frameR):
+    def tranform_input_img(self, frame):
+        frame = cv2.resize(frame, img_shape_half) # half img size
+        frame = cv2.medianBlur(frame,3) # apply median blur
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) # convert from BGR to HSV
+        _,_,v = cv2.split(frame) # split channels
+        return v
 
-        Left_Stereo_Map = stereo_cam.Left_Stereo_Map
-        Right_Stereo_Map = stereo_cam.Right_Stereo_Map
-        stereo = stereo_cam.stereo
-        num_disp = stereo_cam.num_disp
-        wls_filter = stereo_cam.wls_filter
+    def run_stereo(self, frameL, frameR):
 
-        frameL = cv2.resize(frameL, img_shape_half) # half img size
-        frameR = cv2.resize(frameR, img_shape_half)
+        Left_Stereo_Map = self.Left_Stereo_Map
+        Right_Stereo_Map = self.Right_Stereo_Map
+        stereo = self.stereo
+        num_disp = self.num_disp
+        wls_filter = self.wls_filter
+
+        frameL = self.tranform_input_img(frameL)
+        frameR = self.tranform_input_img(frameR)
 
         Left_remap = cv2.remap(frameL,Left_Stereo_Map[0],Left_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters founds during the initialisation
         Right_remap = cv2.remap(frameR,Right_Stereo_Map[0],Right_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
 
-        grayL= cv2.cvtColor(Left_remap,cv2.COLOR_BGR2GRAY)   
-        grayR= cv2.cvtColor(Right_remap,cv2.COLOR_BGR2GRAY)
+        grayL= Left_remap # cv2.cvtColor(Left_remap,cv2.COLOR_BGR2GRAY)
+        grayR= Right_remap
  
-        disp = stereo.compute(grayL,grayR).astype(np.float32) / 16.0
+        disp = stereo.compute(grayL,grayR).astype(np.float32) / 16
         disp = disp / num_disp
         #disp = cv2.normalize(disp,(0,0),0,2,cv2.NORM_MINMAX)
         disp = wls_filter.filter(disp,grayL,None,disp)
+        disp = 1 - disp[:,64:] # inverting and cropping image
         disp = cv2.resize(disp, img_shape) # resize img to full size
-        stereo_cam.disp = disp
+        self.disp = disp
         return disp
 
 
 if __name__ == "__main__":
     
-    stereo_cam.calibrate_stereo()
+    stereo = stereo_cam()
+    stereo.calibrate_stereo()
 
     print('Engaging test')
     captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
@@ -209,8 +218,8 @@ if __name__ == "__main__":
             print('Stream ended')
             break
 
-        disp_map = stereo_cam.run_stereo(frameL, frameR)
-        stereo_cam.place_markers(disp_map)
+        disp_map = stereo.run_stereo(frameL, frameR)
+        stereo.place_markers(disp_map)
         cv2.imshow("Stereo", disp_map)
         
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
