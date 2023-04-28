@@ -2,17 +2,16 @@ import cv2
 from ultralytics import YOLO
 import numpy as np
 
-print('Initializing model')
-model = YOLO("ultralytics/yolov8n.pt") #default model
-#model = YOLO("Models/best.pt") #custom model
-print('Engaging...')
-
-
 class obj_detect():
 
-    def __init__(self):
+    def __init__(self, weights):
         self.boxes = []
         self.cls = []
+        print('Initializing model:', weights)
+        # "Models/best.pt" #custom model
+        # "ultralytics/yolov8n.pt" #default model
+        self.model = YOLO(weights)
+        print('Initialization complete')
 
     def boundingboxcenter(self,frame):
         boxes = self.boxes
@@ -48,7 +47,7 @@ class obj_detect():
         return (boxes, cls)
 
     def detect_objects(self, frame, filter_class=False):
-        results = model.predict(source=frame, verbose=False)
+        results = self.model.predict(source=frame, verbose=False)
         if len(results) > 0:
             results_plot = results[0].plot(show_conf=False, line_width=1)
             for result in results:
@@ -62,7 +61,7 @@ class obj_detect():
 
 if __name__ == "__main__":
 
-    obj_det = obj_detect()
+    obj_det = obj_detect("ultralytics/yolov8n.pt")
     capture = cv2.VideoCapture('Test videos/LA Walk Park.mp4')
     #capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
     print('Engaging test')

@@ -6,13 +6,10 @@ class alert_system:
 
     alerts = []
     
-    def check(cls, bb_center, distances, obs_flag=False):
+    def check(cls, distances, obs_flag=False):
 
         if len(cls) == 0:
-            return
-
-        left_partition = 270 # 320-50
-        right_partition = 470 # 320+50
+            return []
 
         #default filtered classes: [0,1,2,3,5,7,13,15,16,17,18,19,57] nc: 13
         #custom model classes: ['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck'] nc: 9
@@ -35,68 +32,63 @@ class alert_system:
                     cls[i] = 'animal'
                     continue
         
-        left = []
-        right = []
-        center = []
-        sections = (center, left, right) 
+        obj_list = []
 
-        for i in range(len(bb_center)):
+        animal_count = 0
+        person_count = 0
+        vehicle_count = 0
+        bench_count = 0
+
+        alert_list = []
+
+        for i in range(len(distances)):
             if distances[i] > 8: # only objects closer than this distance(meters) will be alerted of
                 continue
-            if (bb_center[i][0] < left_partition):
-                left.append(str(cls[i]))
-            if (bb_center[i][0] > right_partition):
-                right.append(str(cls[i]))
             else:
-                center.append(str(cls[i]))
+                obj_list.append(str(cls[i]))
 
-        alerts_left = []
-        alerts_right = []
-        alerts_center = []
-        alerts = [alerts_center, alerts_left, alerts_right]
-
-        directions = ['front','left','right']
-
-        for i in range(3):
-            animal_count = 0
-            person_count = 0
-            vehicle_count = 0
-            bench_count = 0
-            side = sections[i]
-            
-            if len(side) == 0:
+            if len(obj_list) == 0:
                 continue
 
-            for j in side:
-                if len(j) == 0:
-                    continue
-                if j == 'animal':
+            for i in obj_list:
+                if i == 'animal':
                     animal_count += 1
-                if j == 'person':
+                if i == 'person':
                     person_count += 1
-                if j == 'bench':
+                if i == 'bench':
                     bench_count += 1
-                if j == 'vehicle':
+                if i == 'vehicle':
                     vehicle_count += 1
 
-            if obs_flag:
-                alert = "Obstruction"
-                alerts[i].append(alert)
-            if animal_count > 1:
-                alert = "Animals to the " + directions[i]
-                alerts[i].append(alert)
-            if person_count > 2:
-                alert = "People to the " + directions[i]
-                alerts[i].append(alert)
-            if vehicle_count > 0:
-                alert = "Vehicles to the " + directions[i]
-                alerts[i].append(alert)
-            if bench_count > 0:
-                alert = "Bench to the " + directions[i]
-                alerts[i].append(alert)
-           
-        alert_system.alerts = alerts
+        if obs_flag:
+            alert = "Obstruction"
+            alert_list.append(alert)
+
+        if animal_count == 1:
+            alert = "Animal"
+            alert_list.append(alert)
+        elif animal_count > 1:
+            alert = "Animals"
+            alert_list.append(alert)  
+
+        if person_count == 1:
+            alert = "Person"
+            alert_list.append(alert)
+        elif person_count > 1:
+            alert = "People"
+            alert_list.append(alert)
+
+        if vehicle_count > 0:
+            alert = "Vehicle"
+            alert_list.append(alert)
+
+        if bench_count > 0:
+            alert = "Bench"
+            alert_list.append(alert)
+
+        alert_system.alerts = alert_list
         return
+    
 
     def play():
         from win32com.client import Dispatch
@@ -104,17 +96,19 @@ class alert_system:
 
         CoInitialize()
         speak = Dispatch('SAPI.SpVoice')
+        speak.Rate = 2
 
         while(True):
             alerts = alert_system.alerts
-            for i in alerts:
-                if len(i) == 0:
-                        continue
-                print(i)
-                for alert in i:
-                    speak.Speak(alert)
-                    #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
+            if len(alerts) == 0:
+                sleep(1)
+                continue
+            print(alerts)
+            alert = "".join(alerts)
+            speak.Speak(alert)
+            #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
             sleep(1)
+            
 
     def start_play_thread():
 

@@ -5,7 +5,7 @@ if __name__ == "__main__":
     import Stereo_video
     import Audio_feedback as af
     
-    obj_det = Obj_detect_v8.obj_detect()
+    obj_det = Obj_detect_v8.obj_detect("ultralytics/yolov8n.pt")
     stereo = Stereo_video.stereo_cam()
     stereo.calibrate_stereo()
     af.alert_system.start_play_thread()
@@ -28,11 +28,11 @@ if __name__ == "__main__":
         disp_map = stereo.run_stereo(frameL, frameR)
         stereo.place_markers(disp_map)
 
-        distances = stereo.find_distance(results_plot, bb_center, True)
+        distances = stereo.find_distance(results_plot, bb_center, False)
         cls = obj_det.cls
         obs_flag = stereo.obstruction_flag
 
-        af.alert_system.check(cls, bb_center, distances, obs_flag)
+        af.alert_system.check(cls, distances, obs_flag)
         cv2.imshow("YOLOv8", results_plot)
         cv2.imshow("Stereo", disp_map)
         
