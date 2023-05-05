@@ -7,11 +7,11 @@ class obj_detect():
     def __init__(self, weights):
         self.boxes = []
         self.cls = []
-        print('Initializing model:', weights)
+        print('Initializing model:', weights.split('/')[-1])
         # "Models/best.pt" #custom model
         # "ultralytics/yolov8n.pt" #default model
         self.model = YOLO(weights)
-        print('Initialization complete')
+        print('Complete')
 
     def boundingboxcenter(self,frame):
         boxes = self.boxes

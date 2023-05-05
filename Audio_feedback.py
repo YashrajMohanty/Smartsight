@@ -1,5 +1,6 @@
 from time import sleep
 from threading import Thread
+from numpy import asarray
 
 
 class alert_system:
@@ -14,7 +15,7 @@ class alert_system:
         #default filtered classes: [0,1,2,3,5,7,13,15,16,17,18,19,57] nc: 13
         #custom model classes: ['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck'] nc: 9
         cls = cls.astype(int)
-        cls = list(cls)
+        cls = cls.tolist()
         for i in range(len(cls)):
             if cls[i] == 0:
                 cls[i] = 'person'
@@ -96,7 +97,7 @@ class alert_system:
 
         CoInitialize()
         speak = Dispatch('SAPI.SpVoice')
-        speak.Rate = 2
+        speak.Rate = 1.8
 
         while(True):
             alerts = alert_system.alerts
