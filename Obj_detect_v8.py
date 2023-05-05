@@ -13,6 +13,7 @@ class obj_detect():
         self.model = YOLO(weights)
         print('Complete')
 
+
     def boundingboxcenter(self,frame):
         boxes = self.boxes
         if len(boxes) == 0:
@@ -26,6 +27,7 @@ class obj_detect():
             bb_center.append([avg_x, avg_y])
             cv2.circle(frame, (avg_x, avg_y), 2, (0, 255, 0), -1)
         return bb_center
+
 
     def filter_classes(self, result):
         filter_class = [0,1,2,3,5,7,13,15,16,17,18,19,57] # classes to filter (according to COCO128)
@@ -45,6 +47,7 @@ class obj_detect():
         cls = np.array(cls)
         boxes = np.array(boxes)
         return (boxes, cls)
+
 
     def detect_objects(self, frame, filter_class=False):
         results = self.model.predict(source=frame, verbose=False)
