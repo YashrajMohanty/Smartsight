@@ -8,74 +8,43 @@ img_shape_half = [320, 240]
 
 class calibrate_cam:
 
-    def __init__(self, folder, force_calibrate=False):
+    def __init__(self, folder):
         self.folder = folder
-        self.force_calibrate = force_calibrate
         self.objpoints = None
         self.imgpoints = None
         self.mtx = None
         self.dist = None
-
-
-    def store_params(self, mtx, dist, objpoints, imgpoints):
-        objpoints = np.array(objpoints)
-        imgpoints = np.array(imgpoints)
-
-        np.save(self.folder+'/calibData/mtx.npy', mtx, allow_pickle=False, fix_imports=False)
-        np.save(self.folder+'/calibData/dist.npy', dist, allow_pickle=False, fix_imports=False)
-        np.save(self.folder+'/calibData/objpoints.npy', objpoints, allow_pickle=False, fix_imports=False)
-        np.save(self.folder+'/calibData/imgpoints.npy', imgpoints, allow_pickle=False, fix_imports=False)
-        print('Parameters saved')
-
-
-    def load_params(self):
-        print('Reading calibration data')
-        calib_directory = self.folder + '/calibData/'
-        mtx = np.load(calib_directory + 'mtx.npy')
-        dist = np.load(calib_directory + 'dist.npy')
-        objpoints = np.load(calib_directory + 'objpoints.npy')
-        imgpoints = np.load(calib_directory + 'imgpoints.npy')
-        return (mtx, dist, objpoints, imgpoints)
-    
+ 
 
     def calibrate_camera(self):
 
-        npy_count = len(os.listdir(self.folder + '/calibData'))
-        if not self.force_calibrate and npy_count == 4:
+        print('Calibrating camera')
+        # termination criteria
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        
+        # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+        objp = np.zeros((6*8,3), np.float32)
+        objp[:,:2] = np.mgrid[0:8,0:6].T.reshape(-1,2)
 
-            self.mtx, self.dist, self.objpoints, self.imgpoints = self.load_params()
-            print('Read complete')
+        self.objpoints = [] # 3d point in real world space
+        self.imgpoints = [] # 2d points in image plane.
 
-        else:
+        for filename in list(glob(self.folder+'/*.jpg')):
 
-            print('Calibrating camera')
-            # termination criteria
-            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+            img = cv2.imread(filename)
+            img = cv2.resize(img, img_shape_half) # half the img size
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-            objp = np.zeros((6*8,3), np.float32)
-            objp[:,:2] = np.mgrid[0:8,0:6].T.reshape(-1,2)
+            ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
 
-            self.objpoints = [] # 3d point in real world space
-            self.imgpoints = [] # 2d points in image plane.
+            # If found, add object points, image points
+            if ret == True:
+                self.objpoints.append(objp)
+                corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
+                self.imgpoints.append(corners2)
 
-            for filename in list(glob(self.folder+'/*.jpg')):
-
-                img = cv2.imread(filename)
-                img = cv2.resize(img, img_shape_half) # half the img size
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                
-                ret, corners = cv2.findChessboardCorners(gray, (8,6), None)
-
-                # If found, add object points, image points
-                if ret == True:
-                    self.objpoints.append(objp)
-                    corners2 = cv2.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
-                    self.imgpoints.append(corners2)
-
-            _, self.mtx, self.dist, _, _ = cv2.calibrateCamera(self.objpoints, self.imgpoints, img_shape_half, None, None)
-            #new_mtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, img.shape[:2], 1, img.shape[:2])
-            self.store_params(self.mtx, self.dist, self.objpoints, self.imgpoints)
+        _, self.mtx, self.dist, _, _ = cv2.calibrateCamera(self.objpoints, self.imgpoints, img_shape_half, None, None)
+        #new_mtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, img.shape[:2], 1, img.shape[:2])
         
         print("Camera matrix:\n", self.mtx)
         print("\nDistortion coefficient:\n", self.dist)
@@ -138,34 +107,73 @@ class stereo_cam:
         return distances
 
 
-    def calibrate_stereo(self):
+    def load_params(self):
+        print('Loading saved parameters')
+        Left_param1 = np.load('Chessboard/L/calibData/Left_Stereo_Map1.npy')
+        Left_param2 = np.load('Chessboard/L/calibData/Left_Stereo_Map2.npy')
+        Right_param1 = np.load('Chessboard/R/calibData/Right_Stereo_Map1.npy')
+        Right_param2 = np.load('Chessboard/R/calibData/Right_Stereo_Map2.npy')
 
-        camL = calibrate_cam('Chessboard/L', force_calibrate=False)
-        camR = calibrate_cam('Chessboard/R', force_calibrate=False)
-        camL.calibrate_camera()
-        camR.calibrate_camera()
+        Left_stereo_map = [Left_param1, Left_param2]
+        Right_stereo_map = [Right_param1, Right_param2]
+        
+        print('Parameters loaded')
+        return (Left_stereo_map, Right_stereo_map)
 
-        criteria_stereo = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-        _, MLS, dLS, MRS, dRS, R, T, _, _ = cv2.stereoCalibrate(camL.objpoints, #objpoints same for both cameras
-                                                                camL.imgpoints,
-                                                                camR.imgpoints,
-                                                                camL.mtx,
-                                                                camL.dist,
-                                                                camR.mtx,
-                                                                camR.dist,
-                                                                img_shape_half,
-                                                                criteria = criteria_stereo,
-                                                                flags = cv2.CALIB_FIX_INTRINSIC)
+    def save_params(self, Left_param, Right_param):
+        print('Saving parameters')
+        Left_param1 = Left_param[0]
+        Left_param2 = Left_param[1]
+        Right_param1 = Right_param[0]
+        Right_param2 = Right_param[1]
 
-        RL, RR, PL, PR, _, _, _= cv2.stereoRectify(MLS, dLS, MRS, dRS,
-                                                    img_shape_half, R, T,
-                                                    1,(0,0))
+        save_directoryL = 'Chessboard/L/calibData/'
+        save_directoryR = 'Chessboard/R/calibData/'
 
-        self.Left_Stereo_Map= cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
-                                                    img_shape_half, cv2.CV_16SC2)
-        self.Right_Stereo_Map= cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
-                                                    img_shape_half, cv2.CV_16SC2)
+        np.save(save_directoryL+'Left_Stereo_Map1.npy', Left_param1, allow_pickle=False, fix_imports=False)
+        np.save(save_directoryL+'Left_Stereo_Map2.npy', Left_param2, allow_pickle=False, fix_imports=False)
+        np.save(save_directoryR+'Right_Stereo_Map1.npy', Right_param1, allow_pickle=False, fix_imports=False)
+        np.save(save_directoryR+'Right_Stereo_Map2.npy', Right_param2, allow_pickle=False, fix_imports=False)
+        print('Save complete')
+        return
+
+
+    def calibrate_stereo(self, force_calibrate=False):
+
+        if (len(os.listdir('Chessboard/L/calibData')) == 2) and (len(os.listdir('Chessboard/R/calibData')) == 2) and not force_calibrate:
+            self.Left_Stereo_Map, self.Right_Stereo_Map = self.load_params()
+
+        else:
+            print('Beginning calibration')
+            camL = calibrate_cam('Chessboard/L')
+            camR = calibrate_cam('Chessboard/R')
+            camL.calibrate_camera()
+            camR.calibrate_camera()
+
+            criteria_stereo = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+            _, MLS, dLS, MRS, dRS, R, T, _, _ = cv2.stereoCalibrate(camL.objpoints, #objpoints same for both cameras
+                                                                    camL.imgpoints,
+                                                                    camR.imgpoints,
+                                                                    camL.mtx,
+                                                                    camL.dist,
+                                                                    camR.mtx,
+                                                                    camR.dist,
+                                                                    img_shape_half,
+                                                                    criteria = criteria_stereo,
+                                                                    flags = cv2.CALIB_FIX_INTRINSIC)
+
+            RL, RR, PL, PR, _, _, _= cv2.stereoRectify(MLS, dLS, MRS, dRS,
+                                                        img_shape_half, R, T,
+                                                        1,(0,0))
+
+            self.Left_Stereo_Map= cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
+                                                        img_shape_half, cv2.CV_16SC2)
+            self.Right_Stereo_Map= cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
+                                                        img_shape_half, cv2.CV_16SC2)
+
+            self.save_params(self.Left_Stereo_Map, self.Right_Stereo_Map)
 
 
     def run_stereo(self, frameL, frameR):
@@ -173,8 +181,8 @@ class stereo_cam:
         frameL = self.tranform_input_img(frameL)
         frameR = self.tranform_input_img(frameR)
 
-        Left_remap = cv2.remap(frameL, self.Left_Stereo_Map[0], self.Left_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters found during the initialisation
-        Right_remap = cv2.remap(frameR, self.Right_Stereo_Map[0], self.Right_Stereo_Map[1], interpolation = cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
+        Left_remap = cv2.remap(frameL, self.Left_Stereo_Map[0], self.Left_Stereo_Map[1], interpolation=cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters found during the initialisation
+        Right_remap = cv2.remap(frameR, self.Right_Stereo_Map[0], self.Right_Stereo_Map[1], interpolation=cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
 
         grayL= Left_remap # cv2.cvtColor(Left_remap,cv2.COLOR_BGR2GRAY)
         grayR= Right_remap # cv2.cvtColor(Left_remap,cv2.COLOR_BGR2GRAY)
@@ -243,7 +251,7 @@ class stereo_cam:
 if __name__ == "__main__":
     
     stereo = stereo_cam()
-    stereo.calibrate_stereo()
+    stereo.calibrate_stereo(force_calibrate=False)
 
     print('Engaging test')
     captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
