@@ -1,6 +1,5 @@
 from time import sleep
 from threading import Thread
-from numpy import asarray
 
 
 class alert_system:
