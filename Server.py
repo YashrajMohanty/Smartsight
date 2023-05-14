@@ -18,7 +18,6 @@ print('Socket bind complete')
 server_socket.listen(10)
 print('Socket now listening')
 conn, addr = server_socket.accept()
-data = b''
 payload_size = struct.calcsize("L")
 #-------------------------/SERVER-------------------------
 
@@ -29,7 +28,7 @@ stereo.calibrate_stereo()
 
 def get_frame():
     # Retrieve message size
-    global data
+    data = b''
     img_file = BytesIO()
     
     while len(data) < payload_size:
@@ -41,7 +40,7 @@ def get_frame():
 
     # Retrieve all data based on message size
     while len(data) < msg_size:
-        data += conn.recv(4096)
+        data += conn.recv(4096*8) # 32kb buffer size
 
     frame_data = data[:msg_size]
     data = data[msg_size:]
@@ -61,7 +60,7 @@ def pack_alerts(alerts):
 
 while True:
 
-    #-----------------------------SERVER-------------------------
+    #-----------------------------SERVER--------------------------
     frame = get_frame()
 
     if (str(type(frame))) == "<class 'NoneType'>":
@@ -92,5 +91,5 @@ while True:
 
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break
-server_socket.shutdown(1)
+cv2.destroyAllWindows()
 server_socket.close()

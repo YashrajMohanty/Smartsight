@@ -10,7 +10,6 @@ af.alert_system.start_play_thread()
 
 #----------------------------CLIENT---------------------------
 client_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-data = b''
 payload_size = struct.calcsize("L")
 try:
     port = 8089
@@ -34,7 +33,7 @@ def pack_frame(frameL, frameR):
 
 def get_alerts():
     # Retrieve message size
-    global data
+    data = b''
     
     while len(data) < payload_size:
         data += client_socket.recv(1024)
@@ -45,7 +44,7 @@ def get_alerts():
 
     # Retrieve all data based on message size
     while len(data) < msg_size:
-        data += client_socket.recv(4096)
+        data += client_socket.recv(4096*8) # 32kb buffer size
 
     alert_data = data[:msg_size]
     data = data[msg_size:]
@@ -79,6 +78,4 @@ while True:
 
 captureL.release()
 captureR.release()
-cv2.destroyAllWindows()
-client_socket.shutdown(1)
 client_socket.close()
