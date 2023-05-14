@@ -26,7 +26,6 @@ def pack_frame(frameL, frameR):
     # Serialize frame
     np.save(img_file, frame)
     data = img_file.getvalue()
-
     # Send message length
     message_size = struct.pack("L", len(data))
     return message_size + data
@@ -44,7 +43,7 @@ def get_alerts():
 
     # Retrieve all data based on message size
     while len(data) < msg_size:
-        data += client_socket.recv(4096*8) # 32kb buffer size
+        data += client_socket.recv(1024*32) # 32kb buffer size
 
     alert_data = data[:msg_size]
     data = data[msg_size:]

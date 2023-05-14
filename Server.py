@@ -40,7 +40,7 @@ def get_frame():
 
     # Retrieve all data based on message size
     while len(data) < msg_size:
-        data += conn.recv(4096*8) # 32kb buffer size
+        data += conn.recv(1024*256) # 256kb buffer size
 
     frame_data = data[:msg_size]
     data = data[msg_size:]
