@@ -32,14 +32,15 @@ class stereo_dist():
     def place_markers(self,frame):
 
         y_center, x_center = frame.shape[0]/2 , frame.shape[1]/2
-        grid_size = 120
-        grid = [int(-grid_size/2), 0, int(grid_size/2)]
+        grid_size = 160
+        grid_x = [-grid_size, int(-grid_size/2), 0, int(grid_size/2), grid_size]
+        grid_y = [int(-grid_size/2), 0, int(grid_size/2)]
         #grid = [0]
 
         marker_pos = []
         
-        for i in grid:
-            for j in grid:
+        for i in grid_x:
+            for j in grid_y:
                 point = (x_center+i, y_center+j)
                 marker_pos.append(point)
 
@@ -47,10 +48,10 @@ class stereo_dist():
 
         near_count = 0
         for i in dist:
-            if i < 3: # if distance returned by marker < 3.5 meters
+            if i < 3: # if distance returned by marker < 3 meters
                 near_count += 1
 
-        if near_count > 4: # if more than 4 markers return low distance
+        if near_count >= 4: # if 4 or more markers return low distance
             self.obstruction_flag = True
         else:
             self.obstruction_flag = False
