@@ -16,13 +16,19 @@ This program also runs on a server-client architecture with **server.py** and **
 The program averages around 20fps on a GTX 1080ti.
 
 ## Object Detection
-Object detection uses the **YOLOv8** model to detect object classes and provide bounding boxes.  
+Object detection uses the **YOLOv8** model to detect object classes and provide bounding boxes.
+
+
 ![YOLOv8 Object Detection](overview_img/YOLOv8Img.png)
 
 ## Depth Estimation
-The stereo vision module uses the Pytorch **MiDaS** model to generate disparity maps and calculate distances.  
+The stereo vision module uses the Pytorch **MiDaS** model to generate disparity maps and calculate distances.
+
+
 ![MiDaS Depth Estimation](overview_img/StereoMidasImg.png)
 
 ## Audio Feedback
-The information provided by these modules are used by the audio feedback module to generate and play the suitable alerts.  
+The information provided by these modules are used by the audio feedback module to generate and play the suitable alerts.
+
+
 ![Generated alerts](overview_img/AudioFeedbackImg.png)
