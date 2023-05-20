@@ -3,9 +3,10 @@ import struct
 import cv2
 from io import BytesIO
 import numpy as np
+from time import time
 
 import Obj_detect_v8
-import Stereo_video
+import Stereo_CUDA
 import Audio_feedback as af
 
 #--------------------------SERVER------------------------
@@ -22,9 +23,11 @@ payload_size = struct.calcsize("L")
 #-------------------------/SERVER-------------------------
 
 obj_det = Obj_detect_v8.obj_detect("ultralytics/yolov8n.pt")
-stereo = Stereo_video.stereo_cam()
-stereo.calibrate_stereo()
-#af.alert_system.start_play_thread()
+midas = Stereo_CUDA.stereo_midas()
+sd = Stereo_CUDA.stereo_dist()
+
+prev_frame_time = 0
+new_frame_time = 0
 
 def get_frame():
     # Retrieve message size
@@ -66,28 +69,30 @@ while True:
     if (str(type(frame))) == "<class 'NoneType'>":
         print('Stream ended')
         break
-
-    frameL = frame[:, :int(frame.shape[1]/2)]
-    frameR = frame[:, int(frame.shape[1]/2):]
     #----------------------------/SERVER-------------------------
 
-    results_plot = obj_det.detect_objects(frameL,filter_class=True)
+    results_plot = obj_det.detect_objects(frame,filter_class=True)
     bb_center = obj_det.boundingboxcenter(results_plot)
 
-    disp_map = stereo.run_stereo(frameL, frameR)
-    stereo.place_markers(disp_map)
+    disp_map = midas.predict_depth(frame)
+    sd.place_markers(disp_map)
 
-    distances = stereo.find_distance(results_plot, bb_center, False)
+    distances = sd.find_distance(disp_map, bb_center, True, 0.5)
     cls = obj_det.cls
-    obs_flag = stereo.obstruction_flag
+    obs_flag = sd.obstruction_flag
 
     af.alert_system.check(cls, distances, obs_flag)
     alerts = af.alert_system.alerts
     alerts = pack_alerts(alerts)
     conn.sendall(alerts)
 
+    new_frame_time = time()
+    fps = int(1 / (new_frame_time - prev_frame_time))
+    prev_frame_time = new_frame_time
+    cv2.putText(results_plot, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
+
     cv2.imshow("YOLOv8", results_plot)
-    cv2.imshow("Stereo", disp_map)
+    cv2.imshow("Stereo", midas.convert_to_thermal(disp_map))
 
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break

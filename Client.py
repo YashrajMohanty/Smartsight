@@ -20,9 +20,8 @@ except socket.error:
     quit()
 #---------------------------/CLIENT---------------------------
 
-def pack_frame(frameL, frameR):
+def pack_frame(frame):
     img_file = BytesIO()
-    frame = cv2.hconcat([frameL,frameR])
     # Serialize frame
     np.save(img_file, frame)
     data = img_file.getvalue()
@@ -53,14 +52,12 @@ def get_alerts():
     return alerts
 
 
-captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
-captureR = cv2.VideoCapture('Chessboard/Stereo R anim.mp4')
+capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
 
 while True:
-    _, frameL = captureL.read()
-    _, frameR = captureR.read()
+    _, frame = capture.read()
 
-    if (str(type(frameL))) == "<class 'NoneType'>":
+    if (str(type(frame))) == "<class 'NoneType'>":
         print('Stream ended')
         break
 
@@ -68,13 +65,12 @@ while True:
         break
     
     try:
-        client_socket.sendall(pack_frame(frameL, frameR))
+        client_socket.sendall(pack_frame(frame))
     except ConnectionResetError:
         print('Connection closed')
         break
 
     af.alert_system.alerts = get_alerts()
 
-captureL.release()
-captureR.release()
+capture.release()
 client_socket.close()

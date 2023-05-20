@@ -6,6 +6,7 @@ import os
 img_shape = [640, 480] # original img size
 img_shape_half = [320, 240]
 
+
 class calibrate_cam:
 
     def __init__(self, folder):
@@ -63,7 +64,7 @@ class stereo_cam:
         self.num_disp = 64
         self.stereoL = cv2.StereoBM_create(numDisparities=self.num_disp, blockSize=5)
         self.stereoL.setTextureThreshold(10)
-        self.stereoL.setDisp12MaxDiff(10)
+        self.stereoL.setDisp12MaxDiff(5)
 
         # WLS FILTER Parameters
         self.wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=self.stereoL)
@@ -178,8 +179,8 @@ class stereo_cam:
 
     def run_stereo(self, frameL, frameR):
 
-        frameL = self.tranform_input_img(frameL)
-        frameR = self.tranform_input_img(frameR)
+        frameL = self._tranform_input_img(frameL)
+        frameR = self._tranform_input_img(frameR)
 
         Left_remap = cv2.remap(frameL, self.Left_Stereo_Map[0], self.Left_Stereo_Map[1], interpolation=cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)  # Rectify the image using the calibration parameters found during the initialisation
         Right_remap = cv2.remap(frameR, self.Right_Stereo_Map[0], self.Right_Stereo_Map[1], interpolation=cv2.INTER_LANCZOS4, borderMode = cv2.BORDER_CONSTANT)
@@ -192,25 +193,30 @@ class stereo_cam:
         dispL = dispL + 0.015625 # cropping and correcting image
 
         disp = self.wls_filter.filter(dispL,grayL,None,dispL)
-        #disp = self.fix_light(disp)
+        #disp = self._fix_light(disp)
         disp = disp.clip(min=0, max=1)
         #disp = disp[:,64:].clip(min=0)
-        #disp = cv2.normalize(disp,(0,0),0,2,cv2.NORM_MINMAX)
-        disp = cv2.resize(disp, (disp.shape[1]*2, disp.shape[0]*2)) # resize img to full size
-        #print(disp.max(),disp.min())
+        disp = cv2.resize(disp, (disp.shape[1]*2, disp.shape[0]*2), interpolation=cv2.INTER_NEAREST) # resize img to full size
         
         #disp = cv2.resize(disp, img_shape) # resize img to full size
         self.disp = disp
         return disp
     
 
-    def tranform_input_img(self, frame):
-        frame = cv2.resize(frame, img_shape_half) # half img size
+    def _tranform_input_img(self, frame):
+        frame = cv2.resize(frame, img_shape_half, interpolation=cv2.INTER_NEAREST) # half img size
         #frame = cv2.medianBlur(frame,3) # apply median blur
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) # convert from BGR to HSV
         _,_,frame = cv2.split(frame) # split channels
         return frame
-    
+
+    def _fix_light(self, ndarray):
+        ref70percentile = 0.71
+        img70percentile = np.percentile(ndarray, 70)
+        factor = ref70percentile / img70percentile
+        img = ndarray * factor
+        return img
+        
 
     def place_markers(self, img):
 
@@ -238,20 +244,17 @@ class stereo_cam:
         else:
             self.obstruction_flag = False
         return
-    
-
-    def fix_light(self, ndarray):
-        ref70percentile = 0.71
-        img70percentile = np.percentile(ndarray, 70)
-        factor = ref70percentile / img70percentile
-        img = ndarray * factor
-        return img
 
 
 if __name__ == "__main__":
-    
+
+    from time import time
+
     stereo = stereo_cam()
     stereo.calibrate_stereo(force_calibrate=False)
+
+    prev_frame_time = 0
+    new_frame_time = 0
 
     print('Engaging test')
     captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
@@ -266,10 +269,16 @@ if __name__ == "__main__":
             print('Stream ended')
             break
         
-        cv2.imshow('frame',frameL)
-        #cv2.imshow('R', frameR)
         disp_map = stereo.run_stereo(frameL, frameR)
         stereo.place_markers(disp_map)
+
+        new_frame_time = time()
+        fps = int(1 / (new_frame_time - prev_frame_time))
+        prev_frame_time = new_frame_time
+        cv2.putText(frameL, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
+
+        cv2.imshow('frame',frameL)
+        #cv2.imshow('R', frameR)
         cv2.imshow("Stereo", disp_map)
         
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
