@@ -1,8 +1,9 @@
 # Smartsight
 
 ## Overview
-A python based application that aids visually impaired individuals with basic navigation with the help of computer vision technology.  
-It utilizes object detection along with other image processing techniques to provide helpful information about the environment.  
+A python based application that aids visually impaired individuals with basic navigation with the help of computer vision technology. It utilizes object detection along with other image processing techniques to provide helpful information about the environment.  
+
+
 The program works by recording video (frames) from a camera and passing the frames to different modules to obtain the required results.  
 
 
@@ -25,7 +26,7 @@ Object detection uses the ultralytics [YOLOv8](https://github.com/ultralytics/ul
 ![YOLOv8 Object Detection](overview_img/YOLOv8Img.png)
 
 ## Depth Estimation
-Depth estimation is performed using the Pytorch [MiDaS model](https://pytorch.org/hub/intelisl_midas_v2/) to generate disparity maps and calculate distances.
+Depth estimation is performed using the Pytorch [MiDaS](https://pytorch.org/hub/intelisl_midas_v2/) model to generate disparity maps and calculate distances.
 
 
 ![MiDaS Depth Estimation](overview_img/StereoMidasImg.png)
