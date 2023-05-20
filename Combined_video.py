@@ -14,22 +14,21 @@ if __name__ == "__main__":
     prev_frame_time = 0
     new_frame_time = 0
 
-    captureL = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
-    captureR = cv2.VideoCapture('Chessboard/Stereo R anim.mp4')
-    
-    while captureL.isOpened():
+    capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
 
-        _, frameL = captureL.read()
-        _, frameR = captureR.read()
+    while capture.isOpened():
+
+        _, frame = capture.read()
+
         
-        if (str(type(frameL))) == "<class 'NoneType'>":
+        if (str(type(frame))) == "<class 'NoneType'>":
             print('Stream ended')
             break
 
-        results_plot = obj_det.detect_objects(frameL,filter_class=True)
+        results_plot = obj_det.detect_objects(frame,filter_class=True)
         bb_center = obj_det.boundingboxcenter(results_plot)
 
-        disp_map = midas.predict_depth(frameL)
+        disp_map = midas.predict_depth(frame)
         sd.place_markers(disp_map)
 
         distances = sd.find_distance(disp_map, bb_center, True, 0.5)
@@ -49,6 +48,5 @@ if __name__ == "__main__":
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
             break
 
-    captureL.release()
-    captureR.release()
+    capture.release()
     cv2.destroyAllWindows()
