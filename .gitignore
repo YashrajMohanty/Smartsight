@@ -1,8 +1,6 @@
 *.png
 *.jpg
 .gitignore
-Test videos
-coco128
 __pycache__
 Models
 
