@@ -16,7 +16,7 @@ The program consists of the following modules:
 
 
 This program also runs on a server-client architecture with **server.py** and **client.py** (tested on localhost).  
-The program averages around 20fps on a GTX 1080ti.
+The program averages around 16fps on a GTX 1050ti.
 
 
 ## Object Detection
@@ -26,7 +26,7 @@ Object detection uses the ultralytics [YOLOv8](https://github.com/ultralytics/ul
 ![YOLOv8 Object Detection](overview_img/YOLOv8Img.png)
 
 ## Depth Estimation
-Depth estimation is performed using the Pytorch [MiDaS](https://pytorch.org/hub/intelisl_midas_v2/) model to generate disparity maps and calculate distances.
+Depth estimation is performed using the Pytorch [MiDaS](https://pytorch.org/hub/intelisl_midas_v2/) model to generate depth maps and calculate distances.
 
 
 ![MiDaS Depth Estimation](overview_img/StereoMidasImg.png)

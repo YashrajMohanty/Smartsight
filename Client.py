@@ -34,7 +34,12 @@ def get_alerts():
     data = b''
     
     while len(data) < payload_size:
-        data += client_socket.recv(1024)
+        try:
+            data += client_socket.recv(1024)
+        except ConnectionResetError:
+            print("Connection closed")
+            client_socket.close()
+            quit()
 
     packed_msg_size = data[:payload_size]
     data = data[payload_size:]
@@ -52,7 +57,7 @@ def get_alerts():
     return alerts
 
 
-capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
+capture = cv2.VideoCapture(0)
 
 while True:
     _, frame = capture.read()
@@ -71,6 +76,8 @@ while True:
         break
 
     af.alert_system.alerts = get_alerts()
+    if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
+        break
 
 capture.release()
 client_socket.close()
