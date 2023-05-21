@@ -36,3 +36,13 @@ The information provided by these modules are used by the audio feedback module 
 
 
 ![Generated alerts](overview_img/AudioFeedbackImg.png)
+
+
+# Usage/Inference
+For a non-network based implementation, run **Combined_video.py**. For a networked implementation, use **Server.py** and **Client.py**.
+
+
+Set the source in Combined_video.py and Client.py to the device index:  
+`capture = cv2.VideoCapture(0)`  
+We can also run inference on an **mp4** video file:  
+`capture = cv2.VideoCapture("Test_video.mp4")`  

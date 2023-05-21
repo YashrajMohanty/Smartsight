@@ -104,7 +104,7 @@ class alert_system:
             if len(alerts) == 0: # if alert list is empty
                 sleep(1)
                 continue
-            elif alerts[0] == '': # if alert list has one empty element (used in client.py)
+            elif alerts[0] == '': # if alert list has one empty element (used in Client.py)
                 sleep(1)
                 continue
             else:
