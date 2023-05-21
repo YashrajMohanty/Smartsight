@@ -12,6 +12,7 @@ import Audio_feedback as af
 #--------------------------SERVER------------------------
 HOST = ''
 PORT = 8089
+
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print('Socket created')
 server_socket.bind((HOST, PORT))
@@ -33,9 +34,12 @@ def get_frame():
     # Retrieve message size
     data = b''
     img_file = BytesIO()
-    
-    while len(data) < payload_size:
+
+    while len(data) < payload_size:   
         data += conn.recv(1024)
+        if not data:
+            print('Connection lost')
+            quit()
 
     packed_msg_size = data[:payload_size]
     data = data[payload_size:]
@@ -95,5 +99,6 @@ while True:
 
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break
+
 cv2.destroyAllWindows()
 server_socket.close()
