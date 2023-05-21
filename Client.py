@@ -76,6 +76,11 @@ while True:
         break
 
     af.alert_system.alerts = get_alerts()
+
+    cv2.imshow('Response',np.zeros((60,1)))
+    cv2.setWindowProperty('Response', cv2.WND_PROP_TOPMOST,1)
+    if cv2.waitKey(10) & 0xFF == ord('a'): #press a to toggle alerts
+        af.alert_system.toggle_speech()
     if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
         break
 

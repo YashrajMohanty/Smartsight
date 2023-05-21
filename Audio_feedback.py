@@ -5,6 +5,7 @@ from threading import Thread
 class alert_system:
 
     alerts = []
+    speech_flag = True
     
     def check(cls, distances, obs_flag=False, caution=False):
 
@@ -90,6 +91,12 @@ class alert_system:
         alert_system.alerts = alert_list
         return
     
+    def toggle_speech():
+        if alert_system.speech_flag:
+            print("Alerts disabled")
+        else:
+            print("Alerts enabled")
+        alert_system.speech_flag = not alert_system.speech_flag
 
     def play():
         from win32com.client import Dispatch
@@ -108,10 +115,11 @@ class alert_system:
                 sleep(1)
                 continue
             else:
-                print(alerts)
-                alert = "".join(alerts)
-                speak.Speak(alert)
-                #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
+                if alert_system.speech_flag: # play alerts if speech flag is true
+                    print(alerts)
+                    alert = "".join(alerts)
+                    speak.Speak(alert)
+                    #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
                 sleep(0.5)
             
 

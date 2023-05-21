@@ -44,6 +44,10 @@ if __name__ == "__main__":
         cv2.imshow("YOLOv8", results_plot)
         cv2.imshow("Stereo", midas.convert_to_thermal(disp_map))
         
+
+        if cv2.waitKey(10) & 0xFF == ord('a'): #press a to toggle alerts
+            af.alert_system.toggle_speech()
+
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
             break
 
