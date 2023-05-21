@@ -79,9 +79,8 @@ while True:
 
     distances = sd.find_distance(disp_map, bb_center, True, 0.5)
     cls = obj_det.cls
-    obs_flag = sd.obstruction_flag
 
-    af.alert_system.check(cls, distances, obs_flag)
+    af.alert_system.check(cls, distances, sd.obstruction_flag, sd.caution_flag)
     alerts = af.alert_system.alerts
     alerts = pack_alerts(alerts)
     conn.sendall(alerts)

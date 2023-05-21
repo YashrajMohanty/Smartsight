@@ -14,7 +14,7 @@ if __name__ == "__main__":
     prev_frame_time = 0
     new_frame_time = 0
 
-    capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
+    capture = cv2.VideoCapture('Chessboard/LA Walk Park.mp4')
 
     while capture.isOpened():
 
@@ -33,9 +33,8 @@ if __name__ == "__main__":
 
         distances = sd.find_distance(disp_map, bb_center, True, 0.5)
         cls = obj_det.cls
-        obs_flag = sd.obstruction_flag
 
-        af.alert_system.check(cls, distances, obs_flag)
+        af.alert_system.check(cls, distances, sd.obstruction_flag, sd.caution_flag)
 
         new_frame_time = time()
         fps = int(1 / (new_frame_time - prev_frame_time))

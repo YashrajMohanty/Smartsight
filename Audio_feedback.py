@@ -6,7 +6,7 @@ class alert_system:
 
     alerts = []
     
-    def check(cls, distances, obs_flag=False):
+    def check(cls, distances, obs_flag=False, caution=False):
 
         if len(cls) == 0:
             return []
@@ -60,6 +60,9 @@ class alert_system:
                 if i == 'vehicle':
                     vehicle_count += 1
 
+        if caution:
+            alert = "Caution"
+            alert_list.append(alert)            
         if obs_flag:
             alert = "Obstruction"
             alert_list.append(alert)

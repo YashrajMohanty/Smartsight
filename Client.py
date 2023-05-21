@@ -57,7 +57,7 @@ def get_alerts():
     return alerts
 
 
-capture = cv2.VideoCapture(0)
+capture = cv2.VideoCapture("Chessboard/LA Walk Park.mp4")
 
 while True:
     _, frame = capture.read()

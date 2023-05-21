@@ -8,6 +8,7 @@ class stereo_dist():
 
     def __init__(self):
         self.obstruction_flag = False
+        self.caution_flag = False
 
     def find_distance(self,disp, bb_center, display_text=True, fontscale=1):
         if bb_center == None:
@@ -47,14 +48,22 @@ class stereo_dist():
         dist = self.find_distance(frame, marker_pos, display_text=True, fontscale=0.5)
 
         near_count = 0
+        far_count = 0
         for i in dist:
             if i < 3: # if distance returned by marker < 3 meters
                 near_count += 1
+            if i > 15: # if distance returned by marker > 15 meters
+                far_count += 1
 
         if near_count >= 4: # if 4 or more markers return low distance
             self.obstruction_flag = True
         else:
             self.obstruction_flag = False
+
+        if far_count == 15:
+            self.caution_flag = True
+        else:
+            self.caution_flag = False
         return
 
 
