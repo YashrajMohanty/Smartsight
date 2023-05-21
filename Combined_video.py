@@ -3,12 +3,12 @@ if __name__ == "__main__":
     import cv2
     from time import time
     import Obj_detect_v8
-    import Stereo_CUDA
+    import Depth_DNN
     import Audio_feedback as af
     
     obj_det = Obj_detect_v8.obj_detect("ultralytics/yolov8n.pt")
-    midas = Stereo_CUDA.stereo_midas()
-    sd = Stereo_CUDA.stereo_dist()
+    midas = Depth_DNN.midas()
+    sd = Depth_DNN.distance_estimation()
     af.alert_system.start_play_thread()
 
     prev_frame_time = 0

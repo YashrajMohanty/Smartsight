@@ -1,10 +1,10 @@
 import numpy as np
 import cv2
-from time import time, sleep
+from time import time
 import torch
-import math
+from math import e
 
-class stereo_dist():
+class distance_estimation():
 
     def __init__(self):
         self.obstruction_flag = False
@@ -22,7 +22,7 @@ class stereo_dist():
             x, y = int(x), int(y)
 
             distance = disp[y,x]
-            distance = 1.42 + 40.08 * math.e**(-5.43 * distance)
+            distance = 1.42 + 40.08 * e**(-5.43 * distance)
             distance = round(distance, 1)
             distances.append(distance)
 
@@ -67,7 +67,7 @@ class stereo_dist():
         return
 
 
-class stereo_midas():
+class midas():
 
     def __init__(self):
 
@@ -118,8 +118,8 @@ class stereo_midas():
     
 if __name__ == "__main__":
 
-    midas = stereo_midas()
-    sd = stereo_dist()
+    midas = midas()
+    sd = distance_estimation()
 
     prev_frame_time = 0
     new_frame_time = 0

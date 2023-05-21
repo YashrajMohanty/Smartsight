@@ -62,15 +62,13 @@ class alert_system:
 
         if caution:
             alert = "Caution"
-            alert_list.append(alert)            
+            alert_list.append(alert)  
+                      
         if obs_flag:
             alert = "Obstruction"
             alert_list.append(alert)
 
-        if animal_count == 1:
-            alert = "Animal"
-            alert_list.append(alert)
-        elif animal_count > 1:
+        elif animal_count > 0:
             alert = "Animals"
             alert_list.append(alert)  
 
@@ -103,14 +101,18 @@ class alert_system:
 
         while(True):
             alerts = alert_system.alerts
-            if len(alerts) == 0:
+            if len(alerts) == 0: # if alert list is empty
                 sleep(1)
                 continue
-            print(alerts)
-            alert = "".join(alerts)
-            speak.Speak(alert)
-            #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
-            sleep(0.5)
+            elif alerts[0] == '': # if alert list has one empty element (used in client.py)
+                sleep(1)
+                continue
+            else:
+                print(alerts)
+                alert = "".join(alerts)
+                speak.Speak(alert)
+                #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
+                sleep(0.5)
             
 
     def start_play_thread():
