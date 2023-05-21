@@ -47,6 +47,6 @@ Set the source in Combined_video.py and Client.py to the device index:
 We can also run inference on an **mp4** video file:  
 `capture = cv2.VideoCapture("Test_video.mp4")`  
 
-Controls:  
+While the program (or client) is running, you can use the following controls:
 - `a` to toggle alerts ON or OFF
 - `q` to quit program (client)
