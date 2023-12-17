@@ -3,6 +3,9 @@ import cv2
 from time import time
 import torch
 from math import e
+from torchvision.transforms import v2
+from custom_transforms import small_transform
+
 
 class distance_estimation():
 
@@ -71,6 +74,9 @@ class midas():
 
     def __init__(self):
 
+        self.height = 480
+        self.width = 640
+
         torch.hub.set_dir("Models/midas/")
         self.midas = torch.hub.load("Models/midas/intel-isl_MiDaS_master","MiDaS_small", source="local", verbose=False)
 
@@ -83,29 +89,29 @@ class midas():
 
         self.midas.to(self.device)
         self.midas.eval()
-        midas_transforms = torch.hub.load("Models/midas/intel-isl_MiDaS_master","transforms", source="local")
 
-        self.transform = midas_transforms.small_transform
+        #self.midas_transform = torch.hub.load("Models/midas/intel-isl_MiDaS_master","transforms", source="local").small_transform
+
 
 
     def predict_depth(self,frame):
-        height, width = frame.shape[:2]
-        frame = cv2.resize(frame, (int(width/2), int(height/2)), interpolation=cv2.INTER_NEAREST) # half img size
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        input_batch = self.transform(frame).to(self.device)
+
+        input_batch = small_transform(frame)
+        print(input_batch.shape)
 
         with torch.no_grad():
             prediction = self.midas(input_batch)
             prediction = torch.nn.functional.interpolate(
-                prediction.unsqueeze(1),
-                size=frame.shape[:2],
+                prediction.unsqueeze(0), #.unsqueeze()
+                size=[256,256],#frame.shape[:2],
                 mode="bicubic",
-                align_corners=False,
-                ).squeeze()
+                align_corners=False).squeeze(1)
 
-        output = prediction.cpu().numpy()
-        output = cv2.normalize(output,None,0,1,norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_32F) #64F prev
-        output = cv2.resize(output, (width, height), interpolation=cv2.INTER_NEAREST) # half img size
+        print(prediction.dtype, prediction.shape)
+        output = v2.Resize(size=(self.height, self.width), interpolation=v2.InterpolationMode.BICUBIC, antialias=False)(prediction)
+        output = torch.div(output, 1000) # map range from 0 to 1
+        #output = cv2.resize(output, (self.width, self.height), interpolation=cv2.INTER_NEAREST) # half img size
+
         return output
     
 
@@ -135,19 +141,29 @@ if __name__ == "__main__":
             print('Stream ended')
             break
 
-        disp_map = midas.predict_depth(frame)
+        frame = torch.from_numpy(frame)
+        frame = frame.to(midas.device)
+        frame = frame.permute([2,0,1])
+        #print(frame.shape) #[channel, height, width]
 
-        sd.place_markers(disp_map)
+        disp_map = midas.predict_depth(frame) # returns single channel image
+        disp_map = disp_map.squeeze() # remove batch values of tensor
+        disp_map = disp_map.cpu().numpy()
+
+        frame = frame.permute([1,2,0])
+        frame = frame.cpu().numpy()
+        #sd.place_markers(disp_map)
 
         new_frame_time = time()
         fps = int(1 / (new_frame_time - prev_frame_time))
         prev_frame_time = new_frame_time
-        cv2.putText(frame, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
+        cv2.putText(disp_map, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
 
-        cv2.imshow('frame',frame)
+        #cv2.imshow('frame',frame)
+        cv2.imshow('Disp',disp_map)
 
         
-        cv2.imshow("Stereo", midas.convert_to_thermal(disp_map))
+        #cv2.imshow("Stereo", midas.convert_to_thermal(disp_map))
         
         #sleep(2)
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
