@@ -4,8 +4,6 @@ import torch
 class obj_detect():
 
     def __init__(self, weights):
-        self.boxes = []
-        self.cls = []
         print('Initializing model:', weights.split('/')[-1])
         # "Models/best.pt" #custom model
         # "ultralytics/yolov8n.pt" #default model
@@ -13,8 +11,7 @@ class obj_detect():
         print('Complete')
 
 
-    def boundingboxcenter(self,frame):
-        boxes = self.boxes
+    def boundingboxcenter(self, boxes):
         if len(boxes) == 0:
             return
         
@@ -27,35 +24,31 @@ class obj_detect():
         return bb_center
 
 
-    def __filter_classes(self, result):
-        filter_class = [0,1,2,3,5,7,13,15,16,17,18,19,57] # classes to filter in (according to COCO128)
-        cls = result.boxes.cls.int() #[x1, y1, x2, y2]
-        boxes = result.boxes.xyxy.int()
+    def __filter_classes(self, cls, boxes):
 
+        filter_class = torch.tensor([0,1,2,3,5,7,13,15,16,17,18,19,57], dtype=torch.int32, device=torch.device('cuda')) # classes to filter in (according to COCO128)
         new_cls = torch.tensor([], dtype=torch.int32, device=torch.device('cuda'))
         new_boxes = torch.tensor([], dtype=torch.int32, device=torch.device('cuda'))
 
         for i in range(len(cls)):
-            for j in filter_class:
-                if cls[i] == j:
-                    new_cls = torch.cat((new_cls, cls[i].unsqueeze(-1)),dim=0)
-                    new_boxes = torch.cat((new_boxes, boxes[i,:].unsqueeze(0)), dim=0)
-                    break
+            if cls[i] in filter_class:
+                new_cls = torch.cat((new_cls, cls[i].unsqueeze(-1)),dim=0)
+                new_boxes = torch.cat((new_boxes, boxes[i,:].unsqueeze(0)), dim=0)
 
-        return (new_boxes, new_cls)
+        return new_cls, new_boxes
 
 
-    def detect_objects(self, frame, filter_class=False):
+    def detect_objects(self, frame):
         results = self.model.predict(source=frame, verbose=False)
+        
         if len(results):
             results_plot = results[0].plot(show_conf=False, line_width=1)
             for result in results:
-                if filter_class: # if using default model, filter classes
-                    self.boxes, self.cls = self.__filter_classes(result)
-                else:
-                    self.boxes = result.boxes.xyxy
-                    self.cls = result.boxes.cls
-        return results_plot
+                cls = result.boxes.cls.int() #[x1, y1, x2, y2]
+                boxes = result.boxes.xyxy.int()
+                new_cls, new_boxes = self.__filter_classes(cls, boxes)
+
+        return results_plot, new_boxes
 
 
 if __name__ == "__main__":
@@ -73,8 +66,8 @@ if __name__ == "__main__":
             print('Stream ended')
             break
         
-        results_plot = obj_det.detect_objects(frame, filter_class=True)
-        bb_center = obj_det.boundingboxcenter(results_plot)
+        results_plot, boxes = obj_det.detect_objects(frame)
+        bb_center = obj_det.boundingboxcenter(boxes)
 
         if bb_center != None:
             for i in range(len(bb_center)):
