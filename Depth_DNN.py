@@ -2,14 +2,14 @@ import torch
 from torchvision.transforms import v2
 from custom_transforms import small_transform
 
-class distance_estimation():
+class judge_distance():
 
     def __init__(self):
+        
         self.obstruction_flag = False
         self.caution_flag = False
 
-
-    def place_markers(self,frame):
+    def __call__(self,frame):
         '''Measures values at certain points across the image
 
         Args:
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     from time import time
 
     midas = midas()
-    sd = distance_estimation()
+    jd = judge_distance()
 
     prev_frame_time = 0
     new_frame_time = 0
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         disp_map = disp_map.squeeze() # remove batch values of tensor
         
 
-        sd.place_markers(disp_map)
+        jd(disp_map)
 
         new_frame_time = time()
         fps = int(1 / (new_frame_time - prev_frame_time))

@@ -65,7 +65,7 @@ if __name__ == "__main__":
         if (str(type(frame))) == "<class 'NoneType'>":
             print('Stream ended')
             break
-        
+
         results_plot, boxes = obj_det.detect_objects(frame)
         bb_center = obj_det.boundingboxcenter(boxes)
 
