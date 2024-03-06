@@ -56,13 +56,13 @@ if __name__ == "__main__":
     import cv2
 
     obj_det = obj_detect("ultralytics/yolov8n.pt")
-    capture = cv2.VideoCapture('Chessboard/LA Walk Park.mp4')
+    capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
     #capture = cv2.VideoCapture('Chessboard/Stereo L anim.mp4')
     print('Engaging test')
     while capture.isOpened():
         _, frame = capture.read()
 
-        if (str(type(frame))) == "<class 'NoneType'>":
+        if type(frame) == type(None):
             print('Stream ended')
             break
 

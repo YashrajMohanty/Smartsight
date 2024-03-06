@@ -21,7 +21,7 @@ if __name__ == "__main__":
         _, frame = capture.read()
 
         
-        if (str(type(frame))) == "<class 'NoneType'>":
+        if type(frame) == type(None):
             print('Stream ended')
             break
 

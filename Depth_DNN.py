@@ -1,8 +1,14 @@
 import torch
-from torchvision.transforms import v2
+from warnings import catch_warnings, simplefilter
+with catch_warnings():
+    simplefilter("ignore")
+    from torchvision.transforms import v2
 from custom_transforms import small_transform
+import numpy as np
+# 24mm horizontal=73.7deg vertical=41.45deg (iPhone 15 Pro Max main camera)
 
-class judge_distance():
+
+class measure_distance():
 
     def __init__(self):
         
@@ -41,15 +47,15 @@ class judge_distance():
             if i < 0.2:
                 far_count += 1
 
+        self.obstruction_flag = False
+        self.caution_flag = False
+
         if near_count >= 4: # if 4 or more markers return low distance
             self.obstruction_flag = True
-        else:
-            self.obstruction_flag = False
-            
+                     
         if far_count == 15:
             self.caution_flag = True
-        else:
-            self.caution_flag = False
+            
         return
     
 
@@ -91,7 +97,7 @@ class midas():
 
         with torch.no_grad():
             frame = v2.ToImageTensor()(frame)
-            frame = frame.to(midas.device) #[channel, height, width]
+            frame = frame.to(self.device) #[channel, height, width]
 
             input_batch = small_transform(frame)
 
@@ -102,47 +108,69 @@ class midas():
 
         return output
     
+    def top_view(self,img):
+        horizontal_slice = img[350,:] * 480 # 350/480 row of image
+        horizontal_slice = horizontal_slice.astype(np.int32)
+        top_img = np.zeros((480,640))
+
+        for i in range(len(horizontal_slice)):
+            top_img[:horizontal_slice[i], i] = 1
+        
+        cv2.imshow('Top',top_img)
+        return
+    
+    def side_view(self, img):
+        vertical_range = img[:,290:350]
+        vertical_max_slice = np.max(vertical_range, 1)
+        vertical_max_slice = (vertical_max_slice * 640).astype(np.int32)
+        side_img = np.zeros((480, 640))
+
+        for i in range(len(vertical_max_slice)):
+            side_img[i, :vertical_max_slice[i]] = 1
+
+        cv2.imshow('Side', side_img)
+            
+
+    
     
 if __name__ == "__main__":
     
     import cv2
     from time import time
 
-    midas = midas()
-    jd = judge_distance()
+    md = midas()
+    measure_dist = measure_distance()
 
     prev_frame_time = 0
     new_frame_time = 0
 
-    print('Engaging test')
-    capture = cv2.VideoCapture('Chessboard/LA Walk Park.mp4')
 
+    print('Engaging test')
+    capture = cv2.VideoCapture('Chessboard/iphone 15 japan.mp4')
 
     while capture.isOpened():
 
         _, frame = capture.read()
 
-        if (str(type(frame))) == "<class 'NoneType'>":
+        if type(frame) == type(None):
             print('Stream ended')
             break
         
-        disp_map = midas.predict_depth(frame) # returns single channel image
+        cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        disp_map = md.predict_depth(frame) # returns single channel image
         disp_map = disp_map.squeeze() # remove batch values of tensor
-        
+        disp_map_np = disp_map.cpu().numpy()
 
-        jd(disp_map)
+        md.side_view(disp_map_np)
+        md.top_view(disp_map_np)
 
         new_frame_time = time()
         fps = int(1 / (new_frame_time - prev_frame_time))
         prev_frame_time = new_frame_time
 
 
-        disp_map = disp_map.cpu().numpy()
-
-        cv2.putText(disp_map, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
-
-        #cv2.imshow('frame',frame)
-        cv2.imshow('Disp',disp_map)
+        cv2.putText(disp_map_np, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
+        cv2.imshow('Disp',disp_map_np)
         
         #sleep(2)
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
