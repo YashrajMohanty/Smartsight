@@ -1,139 +1,26 @@
+from threading import Thread, Lock
+from winsound import Beep
 from time import sleep
-from threading import Thread
 
+thread_lock = Lock()
+Lfreq = 500
+Rfreq = 500
 
-class alert_system:
+def set_freq(left, right):
+    global Lfreq
+    global Rfreq
+    with thread_lock:
+        Lfreq = int((left/64) * 600) + 400 # 400-1000Hz
+        Rfreq = int((right/64) * 600) + 400
 
-    alerts = []
-    speech_flag = True
-    
-    def check(cls, distances, obs_flag=False, caution=False):
+def audio_loop():
+    while(1):
+        Beep(Lfreq,100)
+        Beep(Rfreq,100)
+        sleep(1)
 
-        if len(cls) == 0:
-            return []
-
-        #default filtered classes: [0,1,2,3,5,7,13,15,16,17,18,19,57] nc: 13
-        #custom model classes: ['bicycle', 'bus', 'car', 'cat', 'dog', 'motorcycle', 'person', 'train', 'truck'] nc: 9
-        cls = cls.astype(int)
-        cls = cls.tolist()
-        for i in range(len(cls)):
-            if cls[i] == 0:
-                cls[i] = 'person'
-                continue
-            for j in [1,2,3,5,7]:
-                if cls[i] == j:
-                    cls[i] = 'vehicle'
-                    continue
-            for j in [13,57]:
-                if cls[i] == j:
-                    cls[i] = 'bench'
-                    continue
-            for j in [15,16,17,18,19]:
-                if cls[i] == j:
-                    cls[i] = 'animal'
-                    continue
-        
-        obj_list = []
-
-        animal_count = 0
-        person_count = 0
-        vehicle_count = 0
-        bench_count = 0
-
-        alert_list = []
-
-        for i in range(len(distances)):
-            if distances[i] > 8: # only objects closer than this distance(meters) will be alerted of
-                continue
-            else:
-                obj_list.append(str(cls[i]))
-
-            if len(obj_list) == 0:
-                continue
-
-            for i in obj_list:
-                if i == 'animal':
-                    animal_count += 1
-                if i == 'person':
-                    person_count += 1
-                if i == 'bench':
-                    bench_count += 1
-                if i == 'vehicle':
-                    vehicle_count += 1
-
-        if caution:
-            alert = "Caution"
-            alert_list.append(alert)  
-                      
-        if obs_flag:
-            alert = "Obstruction"
-            alert_list.append(alert)
-
-        elif animal_count > 0:
-            alert = "Animals"
-            alert_list.append(alert)  
-
-        if person_count == 1:
-            alert = "Person"
-            alert_list.append(alert)
-        elif person_count > 1:
-            alert = "People"
-            alert_list.append(alert)
-
-        if vehicle_count > 0:
-            alert = "Vehicle"
-            alert_list.append(alert)
-
-        if bench_count > 0:
-            alert = "Bench"
-            alert_list.append(alert)
-
-        alert_system.alerts = alert_list
-        return
-    
-    def toggle_speech():
-        if alert_system.speech_flag:
-            print("Alerts disabled")
-        else:
-            print("Alerts enabled")
-        alert_system.speech_flag = not alert_system.speech_flag
-
-    def play():
-        from win32com.client import Dispatch
-        from pythoncom import CoInitialize
-
-        CoInitialize()
-        speak = Dispatch('SAPI.SpVoice')
-        speak.Rate = 1.8
-
-        while(True):
-            alerts = alert_system.alerts
-            if len(alerts) == 0: # if alert list is empty
-                sleep(1)
-                continue
-            elif alerts[0] == '': # if alert list has one empty element (used in Client.py)
-                sleep(1)
-                continue
-            else:
-                if alert_system.speech_flag: # play alerts if speech flag is true
-                    print(alerts)
-                    alert = "".join(alerts)
-                    speak.Speak(alert)
-                    #os.system("espeak -s 155 -a 200 " + alert + "") # for espeak on ubuntu
-                sleep(0.5)
-            
-
-    def start_play_thread():
-
-        audio_thread.start()
-        return
-
-audio_thread = Thread(target=alert_system.play, args=() , name='AudioFeedbackThread')
+audio_thread = Thread(target=audio_loop, args=(), name='AudioThread')
 audio_thread.daemon = True
 
 if __name__ == "__main__":
-    import numpy as np
-    cls = [1,6,6,6,6,6,6,2,2,2,7]
-    cls = np.array(cls)
-    alert_system.start_play_thread()
-    alert_system.check(cls)
+    audio_loop()

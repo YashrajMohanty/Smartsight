@@ -3,73 +3,26 @@ from warnings import catch_warnings, simplefilter
 with catch_warnings():
     simplefilter("ignore")
     from torchvision.transforms import v2
-from custom_transforms import small_transform
 import numpy as np
+import Audio_feedback
 # 24mm horizontal=73.7deg vertical=41.45deg (iPhone 15 Pro Max main camera)
-
-
-class measure_distance():
-
-    def __init__(self):
-        
-        self.obstruction_flag = False
-        self.caution_flag = False
-
-    def __call__(self,frame):
-        '''Measures values at certain points across the image
-
-        Args:
-            frame (tensor): image frame
-
-        Returns:
-            None
-        '''
-
-        y_center, x_center = int(frame.shape[0]/2) , int(frame.shape[1]/2)
-        grid_size = 160
-        grid_x = [-grid_size, int(-grid_size/2), 0, int(grid_size/2), grid_size]
-        grid_y = [int(-grid_size/2), 0, int(grid_size/2)]
-
-        dist = []
-        
-        for i in grid_x:
-            for j in grid_y:
-                dist.append(round(frame[y_center+j, x_center+i].item(), 2))
-        
-        #print(dist)
-        #cv2.putText(frame, str(dist)+'m', (x,y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
-
-        near_count = 0
-        far_count = 0
-        for i in dist:
-            if i > 0.75:
-                near_count += 1
-            if i < 0.2:
-                far_count += 1
-
-        self.obstruction_flag = False
-        self.caution_flag = False
-
-        if near_count >= 4: # if 4 or more markers return low distance
-            self.obstruction_flag = True
-                     
-        if far_count == 15:
-            self.caution_flag = True
-            
-        return
-    
-
+# y = (-0.11)x**2 + 1.07 (Parabolic eq)
 
 
 class midas():
 
     def __init__(self):
 
-        self.height = 480
-        self.width = 640
-
         torch.hub.set_dir("Models/midas/")
         self.midas = torch.hub.load("Models/midas/intel-isl_MiDaS_master","MiDaS_small", source="local", verbose=False)
+
+        self.midas_input_transform = v2.Compose(
+        [
+            lambda img: {"image": img / 255.0},
+            v2.Resize([256,256], interpolation=v2.InterpolationMode.BICUBIC, antialias=False),
+            v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            lambda sample: (sample["image"]).unsqueeze(0),
+        ])
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -99,51 +52,70 @@ class midas():
             frame = v2.ToImageTensor()(frame)
             frame = frame.to(self.device) #[channel, height, width]
 
-            input_batch = small_transform(frame)
+            input_batch = self.midas_input_transform(frame)
 
             prediction = self.midas(input_batch) #[1, 256, 256]
 
-            output = torch.div(prediction, 1000) # map range from 0 to 1
-            output = v2.Resize(size=(self.height, self.width), interpolation=v2.InterpolationMode.BICUBIC, antialias=False)(output)
+            output = v2.Resize(size=(96, 128), interpolation=v2.InterpolationMode.BICUBIC, antialias=False)(prediction)
+            output = torch.div(output, 1000) # map range from 0 to 1
+            output = torch.where(output > 1, 1, output)
 
+            output = output.squeeze() # remove batch values of tensor
+            output = output.cpu().numpy() # move tensor to CPU and convert to numpy
         return output
-    
-    def top_view(self,img):
-        horizontal_slice = img[350,:] * 480 # 350/480 row of image
-        horizontal_slice = horizontal_slice.astype(np.int32)
-        top_img = np.zeros((480,640))
 
-        for i in range(len(horizontal_slice)):
-            top_img[:horizontal_slice[i], i] = 1
-        
-        cv2.imshow('Top',top_img)
-        return
-    
-    def side_view(self, img):
-        vertical_range = img[:,290:350]
-        vertical_max_slice = np.max(vertical_range, 1)
-        vertical_max_slice = (vertical_max_slice * 640).astype(np.int32)
-        side_img = np.zeros((480, 640))
 
-        for i in range(len(vertical_max_slice)):
-            side_img[i, :vertical_max_slice[i]] = 1
+def top_view(img):
+    top_slice = img[75,:] * 100 # 75/96 row of image
+    top_slice = top_slice.astype(np.int32)    
+    return top_slice
 
-        cv2.imshow('Side', side_img)
-            
 
-    
+def draw_top_view(slice):
+    slice = (slice * 0.96).astype(np.int32)
+    top_img = np.zeros((96,128))
+    for i in range(len(slice)):
+        top_img[:slice[i], i] = 1
+    cv2.imshow('Top',top_img)
+
+
+def top_spatial_data(top_slice):
+    near_slice = top_slice == 100
+    near_left = near_slice[:64].sum()
+    near_right = near_slice[64:].sum()
+    #net_y_motion = near_right - near_left
+    #total_y_motion = near_right + near_left
+
+    return near_left, near_right
+
+
+def motion(slice1, slice0):
+    x_diff = slice1 - slice0
+    x_motion = -0.11 * x_diff * x_diff + 1.07 # y = (-0.11)x**2 + 1.07 (Parabolic eq)
+    x_motion = x_motion.astype(np.int32)
+    return
+
+#def side_view(img):
+#    vertical_range = img[:,110:146]
+#    vertical_max_slice = np.max(vertical_range, 1)
+#    vertical_max_slice = (vertical_max_slice * 256).astype(np.int32)
+#    return vertical_max_slice
+
+#def draw_side_view(slice):
+#    side_img = np.zeros((192,256))
+#    for i in range(len(slice)):
+#        side_img[i, :slice[i]] = 1
+#    cv2.imshow('Side', side_img)
+             
     
 if __name__ == "__main__":
     
     import cv2
-    from time import time
 
     md = midas()
-    measure_dist = measure_distance()
+    Audio_feedback.audio_thread.start()
 
-    prev_frame_time = 0
-    new_frame_time = 0
-
+    slice0 = np.zeros((1,128),dtype=np.int32)
 
     print('Engaging test')
     capture = cv2.VideoCapture('Chessboard/iphone 15 japan.mp4')
@@ -157,20 +129,17 @@ if __name__ == "__main__":
             break
         
         cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         disp_map = md.predict_depth(frame) # returns single channel image
-        disp_map = disp_map.squeeze() # remove batch values of tensor
-        disp_map_np = disp_map.cpu().numpy()
-
-        md.side_view(disp_map_np)
-        md.top_view(disp_map_np)
-
-        new_frame_time = time()
-        fps = int(1 / (new_frame_time - prev_frame_time))
-        prev_frame_time = new_frame_time
+        top_slice = top_view(disp_map)
+        #draw_top_view(top_slice)
+        near_left, near_right = top_spatial_data(top_slice)
+        Audio_feedback.set_freq(near_left, near_right)
+        #motion(slice0,top_slice)
+        #slice0 = top_slice
 
 
-        cv2.putText(disp_map_np, str(fps), (0, 470), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1, cv2.LINE_AA)
-        cv2.imshow('Disp',disp_map_np)
+        cv2.imshow('Disp',disp_map)
         
         #sleep(2)
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit
