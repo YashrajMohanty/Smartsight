@@ -1,6 +1,5 @@
 .gitignore
 __pycache__
 Models
-Stereo test.py
-Chessboard
+Test_videos
 .vscode

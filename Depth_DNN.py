@@ -118,7 +118,7 @@ if __name__ == "__main__":
     slice0 = np.zeros((1,128),dtype=np.int32)
 
     print('Engaging test')
-    capture = cv2.VideoCapture('Chessboard/iphone 15 japan.mp4')
+    capture = cv2.VideoCapture('Test_videos/iphone 15 japan.mp4')
 
     while capture.isOpened():
 

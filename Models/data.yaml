@@ -1,6 +1,0 @@
-train: coco128/train/images
-val: coco128/train/images
-test: 
-
-nc: 8
-names: ['bicycle', 'bus', 'car', 'cat', 'dog', 'motorbike', 'person', 'train', 'truck']
