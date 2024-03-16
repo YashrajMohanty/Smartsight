@@ -3,7 +3,7 @@ from warnings import catch_warnings, simplefilter
 with catch_warnings():
     simplefilter("ignore")
     from torchvision.transforms import v2
-import numpy as np
+#import numpy as np
 import Audio_feedback
 # 24mm horizontal=73.7deg vertical=41.45deg (iPhone 15 Pro Max main camera)
 # y = (-0.11)x**2 + 1.07 (Parabolic eq)
@@ -13,8 +13,8 @@ class midas():
 
     def __init__(self):
 
-        torch.hub.set_dir("Models/midas/")
-        self.midas = torch.hub.load("Models/midas/intel-isl_MiDaS_master","MiDaS_small", source="local", verbose=False)
+        torch.hub.set_dir("midas/")
+        self.midas = torch.hub.load("midas/intel-isl_MiDaS_master","MiDaS_small", source="local", verbose=False)
 
         self.midas_input_transform = v2.Compose(
         [
@@ -59,23 +59,24 @@ class midas():
             output = v2.Resize(size=(96, 128), interpolation=v2.InterpolationMode.BICUBIC, antialias=False)(prediction)
             output = torch.div(output, 1000) # map range from 0 to 1
             output = torch.where(output > 1, 1, output)
-
             output = output.squeeze() # remove batch values of tensor
-            output = output.cpu().numpy() # move tensor to CPU and convert to numpy
+
         return output
 
 
 def top_view(img):
     top_slice = img[75,:] * 100 # 75/96 row of image
-    top_slice = top_slice.astype(np.int32)    
+    top_slice = top_slice.to(torch.int32) 
     return top_slice
 
 
 def draw_top_view(slice):
-    slice = (slice * 0.96).astype(np.int32)
-    top_img = np.zeros((96,128))
+    slice = (slice * 0.96).to(torch.int32)
+    top_img = torch.zeros((96,128))
     for i in range(len(slice)):
         top_img[:slice[i], i] = 1
+
+    top_img = top_img.cpu().numpy() # move tensor to CPU and convert to numpy
     cv2.imshow('Top',top_img)
 
 
@@ -89,11 +90,11 @@ def top_spatial_data(top_slice):
     return near_left, near_right
 
 
-def motion(slice1, slice0):
-    x_diff = slice1 - slice0
-    x_motion = -0.11 * x_diff * x_diff + 1.07 # y = (-0.11)x**2 + 1.07 (Parabolic eq)
-    x_motion = x_motion.astype(np.int32)
-    return
+#def motion(slice1, slice0):
+#    x_diff = slice1 - slice0
+#    x_motion = -0.11 * x_diff * x_diff + 1.07 # y = (-0.11)x**2 + 1.07 (Parabolic eq)
+#    x_motion = x_motion.astype(np.int32)
+#    return
 
 #def side_view(img):
 #    vertical_range = img[:,110:146]
@@ -113,9 +114,9 @@ if __name__ == "__main__":
     import cv2
 
     md = midas()
-    Audio_feedback.audio_thread.start()
+    Audio_feedback.start_thread()
 
-    slice0 = np.zeros((1,128),dtype=np.int32)
+    #slice0 = torch.zeros((1,128),dtype=np.int32)
 
     print('Engaging test')
     capture = cv2.VideoCapture('Test_videos/iphone 15 japan.mp4')
@@ -131,6 +132,8 @@ if __name__ == "__main__":
         cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         disp_map = md.predict_depth(frame) # returns single channel image
+        disp_map_np = disp_map.cpu().numpy() # move tensor to CPU and convert to numpy
+
         top_slice = top_view(disp_map)
         #draw_top_view(top_slice)
         near_left, near_right = top_spatial_data(top_slice)
@@ -139,7 +142,7 @@ if __name__ == "__main__":
         #slice0 = top_slice
 
 
-        cv2.imshow('Disp',disp_map)
+        cv2.imshow('Disp',disp_map_np)
         
         #sleep(2)
         if cv2.waitKey(10) & 0xFF == ord('q'): #press q to quit

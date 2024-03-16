@@ -19,6 +19,7 @@ The data provided by Depth_DNN.py is used to generate auditory feedback.
 
 
 ## Usage/Inference
+Clone the `intel-isl/MiDaS` repo in a folder named `midas`.
 Set the necessary paths in **Depth_DNN.py** and run it.
 
 

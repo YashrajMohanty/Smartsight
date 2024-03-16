@@ -22,5 +22,9 @@ def audio_loop():
 audio_thread = Thread(target=audio_loop, args=(), name='AudioThread')
 audio_thread.daemon = True
 
+def start_thread():
+    audio_thread.start()
+    print("Audio thread started")
+
 if __name__ == "__main__":
     audio_loop()
