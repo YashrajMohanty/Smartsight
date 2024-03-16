@@ -19,12 +19,12 @@ The data provided by Depth_DNN.py is used to generate auditory feedback.
 
 
 ## Usage/Inference
-Set the necessary paths and **Depth_DNN.py** and run it.
+Set the necessary paths in **Depth_DNN.py** and run it.
 
 
-To use the camera, set the source in **Depth_DNN.py** to the device index:  
+To use the camera, set the source to the device index:  
 `capture = cv2.VideoCapture(0)`  
-Or add the path to an **mp4** file:  
+Or add the path to an mp4 file:  
 `capture = cv2.VideoCapture("Test_video.mp4")`  
 
 While the program is running, use `q` to quit.
