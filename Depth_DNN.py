@@ -73,8 +73,8 @@ def top_view(img):
 def draw_top_view(slice):
     slice = (slice * 0.96).to(torch.int32)
     top_img = torch.zeros((96,128))
-    for i in range(len(slice)):
-        top_img[:slice[i], i] = 1
+    for index, element in enumerate(slice):
+        top_img[:element, index] = 1
 
     top_img = top_img.cpu().numpy() # move tensor to CPU and convert to numpy
     cv2.imshow('Top',top_img)
